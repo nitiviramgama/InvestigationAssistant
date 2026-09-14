@@ -1,0 +1,1180 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if case.title %}{{ case.title }} | {% endif %}Case Detail | IO Assistant
+{% endblock %}
+
+{% block page_title %}Case Detail{% endblock %}
+
+{% block page_subtitle %}
+    Review case facts, evidence, people, events, and intelligence
+{% endblock %}
+
+{% block nav_cases %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/case.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<section class="case-detail-page" aria-labelledby="case-detail-heading">
+
+    <!-- =========================
+         MESSAGE / ERROR AREA
+    ========================== -->
+
+    {% if messages %}
+        <section
+            class="case-messages"
+            aria-label="Case messages"
+            aria-live="polite"
+        >
+            {% for message in messages %}
+                <div
+                    class="case-message{% if message.tags %} case-message-{{ message.tags }}{% endif %}"
+                    role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                >
+                    <span class="case-message-icon" aria-hidden="true">
+                        {% if message.tags == "success" %}
+                            ✓
+                        {% elif message.tags == "error" %}
+                            !
+                        {% elif message.tags == "warning" %}
+                            ⚠
+                        {% else %}
+                            i
+                        {% endif %}
+                    </span>
+
+                    <span class="case-message-text">
+                        {{ message }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="case-message-close"
+                        aria-label="Dismiss message"
+                    >
+                        &times;
+                    </button>
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    {% if case_error %}
+        <section
+            class="case-error"
+            role="alert"
+            aria-live="assertive"
+        >
+            <div class="case-error-content">
+                <span class="case-error-icon" aria-hidden="true">!</span>
+
+                <div>
+                    <h2>Unable to load case</h2>
+                    <p>{{ case_error }}</p>
+                </div>
+            </div>
+
+            <a
+                href="{% url 'case_list' %}"
+                class="button button-secondary"
+            >
+                Back to Cases
+            </a>
+        </section>
+    {% endif %}
+
+
+    {% if case %}
+
+        <!-- =========================
+             CASE IDENTITY
+        ========================== -->
+
+        <header class="case-identity">
+
+            <div class="case-identity-main">
+
+                <nav
+                    class="breadcrumb"
+                    aria-label="Breadcrumb"
+                >
+                    <a href="{% url 'case_list' %}">
+                        Cases
+                    </a>
+
+                    <span aria-hidden="true">/</span>
+
+                    <span aria-current="page">
+                        {{ case.case_number|default:"Case Detail" }}
+                    </span>
+                </nav>
+
+                <div class="case-title-row">
+
+                    <div class="case-title-content">
+                        <span class="case-number-label">
+                            Case Number
+                        </span>
+
+                        <p class="case-number">
+                            {{ case.case_number|default:"—" }}
+                        </p>
+
+                        <h1 id="case-detail-heading">
+                            {{ case.title|default:"Untitled Investigation" }}
+                        </h1>
+                    </div>
+
+                    {% if case.status %}
+                        <span
+                            class="case-status-badge case-status-{{ case.status|lower }}"
+                        >
+                            <span
+                                class="status-dot"
+                                aria-hidden="true"
+                            ></span>
+                            {{ case.status }}
+                        </span>
+                    {% endif %}
+
+                </div>
+
+                {% if case.description %}
+                    <p class="case-identity-description">
+                        {{ case.description }}
+                    </p>
+                {% endif %}
+
+            </div>
+
+
+            <div class="case-identity-actions">
+
+                {% if case.edit_url %}
+                    <a
+                        href="{{ case.edit_url }}"
+                        class="button button-secondary"
+                    >
+                        <span aria-hidden="true">✎</span>
+                        Edit Case
+                    </a>
+                {% elif case.id %}
+                    <a
+                        href="{% url 'case_edit' case.id %}"
+                        class="button button-secondary"
+                    >
+                        <span aria-hidden="true">✎</span>
+                        Edit Case
+                    </a>
+                {% endif %}
+
+                <a
+                    href="{% url 'case_list' %}"
+                    class="button button-secondary"
+                >
+                    Back to Cases
+                </a>
+
+            </div>
+
+        </header>
+
+
+        <!-- =========================
+             CASE METADATA
+        ========================== -->
+
+        <section
+            class="case-metadata"
+            aria-label="Case information"
+        >
+            <div class="metadata-item">
+                <span class="metadata-label">Created</span>
+
+                <strong class="metadata-value">
+                    {% if case.created_at %}
+                        <time datetime="{{ case.created_at|date:'c' }}">
+                            {{ case.created_at|date:"d M Y, H:i" }}
+                        </time>
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+            </div>
+
+            <div class="metadata-item">
+                <span class="metadata-label">Last Updated</span>
+
+                <strong class="metadata-value">
+                    {% if case.updated_at %}
+                        <time datetime="{{ case.updated_at|date:'c' }}">
+                            {{ case.updated_at|date:"d M Y, H:i" }}
+                        </time>
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+            </div>
+
+            <div class="metadata-item">
+                <span class="metadata-label">Investigator</span>
+
+                <strong class="metadata-value">
+                    {{ case.investigator|default:"—" }}
+                </strong>
+            </div>
+
+            <div class="metadata-item">
+                <span class="metadata-label">Priority</span>
+
+                <strong class="metadata-value">
+                    {{ case.priority|default:"—" }}
+                </strong>
+            </div>
+        </section>
+
+
+        <!-- =========================
+             QUICK ACTIONS
+        ========================== -->
+
+        <section
+            class="quick-actions-section"
+            aria-labelledby="quick-actions-heading"
+        >
+            <header class="section-header">
+                <div>
+                    <h2 id="quick-actions-heading">Quick Actions</h2>
+                    <p>Common actions for this investigation.</p>
+                </div>
+            </header>
+
+            <div class="quick-actions-grid">
+
+                {% if case.id %}
+                    <a
+                        href="{% url 'evidence' %}?case={{ case.id }}"
+                        class="quick-action-card"
+                    >
+                {% else %}
+                    <a
+                        href="{% url 'evidence' %}"
+                        class="quick-action-card"
+                    >
+                {% endif %}
+                        <span
+                            class="quick-action-icon"
+                            aria-hidden="true"
+                        >
+                            ↑
+                        </span>
+
+                        <span class="quick-action-content">
+                            <strong>Upload Evidence</strong>
+                            <span>Add evidence to this case.</span>
+                        </span>
+                    </a>
+
+
+                <a
+                    href="#"
+                    class="quick-action-card"
+                    data-action="add-person"
+                >
+                    <span
+                        class="quick-action-icon"
+                        aria-hidden="true"
+                    >
+                        +
+                    </span>
+
+                    <span class="quick-action-content">
+                        <strong>Add Person</strong>
+                        <span>Add a person or entity to the case.</span>
+                    </span>
+                </a>
+
+
+                <a
+                    href="#"
+                    class="quick-action-card"
+                    data-action="add-event"
+                >
+                    <span
+                        class="quick-action-icon"
+                        aria-hidden="true"
+                    >
+                        ◷
+                    </span>
+
+                    <span class="quick-action-content">
+                        <strong>Add Event</strong>
+                        <span>Add an event to the investigation.</span>
+                    </span>
+                </a>
+
+
+                <a
+                    href="{% url 'timeline' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                    class="quick-action-card"
+                >
+                    <span
+                        class="quick-action-icon"
+                        aria-hidden="true"
+                    >
+                        ◷
+                    </span>
+
+                    <span class="quick-action-content">
+                        <strong>View Timeline</strong>
+                        <span>Review the complete case timeline.</span>
+                    </span>
+                </a>
+
+
+                <a
+                    href="{% url 'graph' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                    class="quick-action-card"
+                >
+                    <span
+                        class="quick-action-icon"
+                        aria-hidden="true"
+                    >
+                        ⌘
+                    </span>
+
+                    <span class="quick-action-content">
+                        <strong>View Graph</strong>
+                        <span>Explore case relationships.</span>
+                    </span>
+                </a>
+
+
+                <a
+                    href="{% url 'legal_intelligence' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                    class="quick-action-card"
+                >
+                    <span
+                        class="quick-action-icon"
+                        aria-hidden="true"
+                    >
+                        ⚖
+                    </span>
+
+                    <span class="quick-action-content">
+                        <strong>Legal Intelligence</strong>
+                        <span>Review relevant legal intelligence.</span>
+                    </span>
+                </a>
+
+
+                <a
+                    href="{% url 'reports' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                    class="quick-action-card"
+                >
+                    <span
+                        class="quick-action-icon"
+                        aria-hidden="true"
+                    >
+                        ▤
+                    </span>
+
+                    <span class="quick-action-content">
+                        <strong>Reports</strong>
+                        <span>Generate or review case reports.</span>
+                    </span>
+                </a>
+
+            </div>
+        </section>
+
+
+        <!-- =========================
+             SUMMARY / FIR FACTS
+        ========================== -->
+
+        <section
+            class="case-detail-panel case-summary-panel"
+            aria-labelledby="case-summary-heading"
+        >
+            <header class="panel-header">
+                <div>
+                    <h2 id="case-summary-heading">
+                        Summary / FIR Facts
+                    </h2>
+
+                    <p>
+                        Key facts and information associated with the case.
+                    </p>
+                </div>
+            </header>
+
+            {% if case.summary or case.fir_number or case.fir_date or case.police_station or case.incident_date or case.incident_location %}
+                <div class="case-facts-grid">
+
+                    {% if case.fir_number %}
+                        <div class="case-fact">
+                            <span class="case-fact-label">FIR Number</span>
+                            <strong>{{ case.fir_number }}</strong>
+                        </div>
+                    {% endif %}
+
+                    {% if case.fir_date %}
+                        <div class="case-fact">
+                            <span class="case-fact-label">FIR Date</span>
+                            <strong>
+                                <time datetime="{{ case.fir_date|date:'c' }}">
+                                    {{ case.fir_date|date:"d M Y" }}
+                                </time>
+                            </strong>
+                        </div>
+                    {% endif %}
+
+                    {% if case.police_station %}
+                        <div class="case-fact">
+                            <span class="case-fact-label">Police Station</span>
+                            <strong>{{ case.police_station }}</strong>
+                        </div>
+                    {% endif %}
+
+                    {% if case.incident_date %}
+                        <div class="case-fact">
+                            <span class="case-fact-label">Incident Date</span>
+                            <strong>
+                                <time datetime="{{ case.incident_date|date:'c' }}">
+                                    {{ case.incident_date|date:"d M Y" }}
+                                </time>
+                            </strong>
+                        </div>
+                    {% endif %}
+
+                    {% if case.incident_location %}
+                        <div class="case-fact">
+                            <span class="case-fact-label">Incident Location</span>
+                            <strong>{{ case.incident_location }}</strong>
+                        </div>
+                    {% endif %}
+
+                </div>
+
+                {% if case.summary %}
+                    <div class="case-summary-text">
+                        <h3>Investigation Summary</h3>
+                        <p>{{ case.summary }}</p>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon" aria-hidden="true">i</div>
+
+                    <h3>No case facts available</h3>
+
+                    <p>
+                        FIR facts and investigation summary information
+                        have not been added yet.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+
+        <!-- =========================
+             TWO-COLUMN CONTENT
+        ========================== -->
+
+        <div class="case-content-grid">
+
+            <!-- =========================
+                 KEY PERSONS
+            ========================== -->
+
+            <section
+                class="case-detail-panel persons-panel"
+                aria-labelledby="persons-heading"
+            >
+                <header class="panel-header">
+                    <div>
+                        <h2 id="persons-heading">Key Persons</h2>
+                        <p>People and entities connected to this case.</p>
+                    </div>
+
+                    <a
+                        href="#"
+                        class="panel-header-link"
+                        data-action="add-person"
+                    >
+                        Add Person
+                    </a>
+                </header>
+
+                {% if key_persons %}
+                    <ul class="person-list">
+                        {% for person in key_persons %}
+                            <li class="person-list-item">
+
+                                <div
+                                    class="person-avatar"
+                                    aria-hidden="true"
+                                >
+                                    {% if person.name %}
+                                        {{ person.name|first|upper }}
+                                    {% else %}
+                                        ?
+                                    {% endif %}
+                                </div>
+
+                                <div class="person-information">
+                                    <strong>
+                                        {{ person.name|default:"Unnamed person" }}
+                                    </strong>
+
+                                    {% if person.role %}
+                                        <span>{{ person.role }}</span>
+                                    {% endif %}
+
+                                    {% if person.description %}
+                                        <p>{{ person.description }}</p>
+                                    {% endif %}
+                                </div>
+
+                                {% if person.relationship %}
+                                    <span class="person-relationship">
+                                        {{ person.relationship }}
+                                    </span>
+                                {% endif %}
+
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div
+                            class="empty-state-icon"
+                            aria-hidden="true"
+                        >
+                            ◉
+                        </div>
+
+                        <h3>No persons or entities</h3>
+
+                        <p>
+                            People and entities identified during the
+                            investigation will appear here.
+                        </p>
+
+                        <a
+                            href="#"
+                            class="button button-secondary"
+                            data-action="add-person"
+                        >
+                            Add Person
+                        </a>
+                    </div>
+                {% endif %}
+            </section>
+
+
+            <!-- =========================
+                 EVIDENCE SUMMARY
+            ========================== -->
+
+            <section
+                class="case-detail-panel evidence-summary-panel"
+                aria-labelledby="evidence-summary-heading"
+            >
+                <header class="panel-header">
+                    <div>
+                        <h2 id="evidence-summary-heading">
+                            Evidence Summary
+                        </h2>
+
+                        <p>
+                            Overview of evidence associated with this case.
+                        </p>
+                    </div>
+
+                    <a
+                        href="{% url 'evidence' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                        class="panel-header-link"
+                    >
+                        View all
+                    </a>
+                </header>
+
+                <div class="evidence-stat-grid">
+
+                    <div class="evidence-stat">
+                        <span class="evidence-stat-label">
+                            Total Evidence
+                        </span>
+
+                        <strong class="evidence-stat-value">
+                            {% if evidence_count is not None %}
+                                {{ evidence_count }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div class="evidence-stat">
+                        <span class="evidence-stat-label">
+                            Documents
+                        </span>
+
+                        <strong class="evidence-stat-value">
+                            {% if document_count is not None %}
+                                {{ document_count }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div class="evidence-stat">
+                        <span class="evidence-stat-label">
+                            Media
+                        </span>
+
+                        <strong class="evidence-stat-value">
+                            {% if media_count is not None %}
+                                {{ media_count }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                </div>
+
+                {% if evidence_summary %}
+                    <p class="panel-summary">
+                        {{ evidence_summary }}
+                    </p>
+                {% elif not evidence %}
+                    <div class="empty-state compact-empty-state">
+                        <div
+                            class="empty-state-icon"
+                            aria-hidden="true"
+                        >
+                            ◫
+                        </div>
+
+                        <h3>No evidence available</h3>
+
+                        <p>
+                            Evidence added to this case will appear here.
+                        </p>
+                    </div>
+                {% endif %}
+            </section>
+
+        </div>
+
+
+        <!-- =========================
+             RECENT EVENTS
+        ========================== -->
+
+        <section
+            class="case-detail-panel recent-events-panel"
+            aria-labelledby="recent-events-heading"
+        >
+            <header class="panel-header">
+                <div>
+                    <h2 id="recent-events-heading">Recent Events</h2>
+                    <p>Latest events recorded for this investigation.</p>
+                </div>
+
+                <a
+                    href="#"
+                    class="panel-header-link"
+                    data-action="add-event"
+                >
+                    Add Event
+                </a>
+            </header>
+
+            {% if recent_events %}
+                <ul class="event-list">
+
+                    {% for event in recent_events %}
+                        <li class="event-list-item">
+
+                            <div
+                                class="event-marker"
+                                aria-hidden="true"
+                            ></div>
+
+                            <div class="event-content">
+
+                                <div class="event-header">
+                                    <h3>
+                                        {{ event.title|default:"Investigation event" }}
+                                    </h3>
+
+                                    {% if event.date %}
+                                        <time datetime="{{ event.date|date:'c' }}">
+                                            {{ event.date|date:"d M Y, H:i" }}
+                                        </time>
+                                    {% elif event.created_at %}
+                                        <time datetime="{{ event.created_at|date:'c' }}">
+                                            {{ event.created_at|date:"d M Y, H:i" }}
+                                        </time>
+                                    {% endif %}
+                                </div>
+
+                                {% if event.description %}
+                                    <p>{{ event.description }}</p>
+                                {% endif %}
+
+                                {% if event.location %}
+                                    <span class="event-location">
+                                        Location: {{ event.location }}
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+                        </li>
+                    {% endfor %}
+
+                </ul>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon" aria-hidden="true">
+                        ◷
+                    </div>
+
+                    <h3>No recent events</h3>
+
+                    <p>
+                        Investigation events will appear here as they
+                        are recorded.
+                    </p>
+
+                    <a
+                        href="#"
+                        class="button button-secondary"
+                        data-action="add-event"
+                    >
+                        Add Event
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+
+        <!-- =========================
+             TIMELINE PREVIEW
+        ========================== -->
+
+        <section
+            class="case-detail-panel timeline-preview-panel"
+            aria-labelledby="timeline-preview-heading"
+        >
+            <header class="panel-header">
+                <div>
+                    <h2 id="timeline-preview-heading">
+                        Timeline Preview
+                    </h2>
+
+                    <p>
+                        Chronological preview of important investigation events.
+                    </p>
+                </div>
+
+                <a
+                    href="{% url 'timeline' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                    class="panel-header-link"
+                >
+                    View Full Timeline
+                </a>
+            </header>
+
+            {% if timeline_events %}
+                <ol class="timeline-preview-list">
+
+                    {% for event in timeline_events %}
+                        <li class="timeline-preview-item">
+
+                            <div
+                                class="timeline-preview-marker"
+                                aria-hidden="true"
+                            ></div>
+
+                            <div class="timeline-preview-content">
+
+                                {% if event.date %}
+                                    <time
+                                        datetime="{{ event.date|date:'c' }}"
+                                        class="timeline-preview-date"
+                                    >
+                                        {{ event.date|date:"d M Y, H:i" }}
+                                    </time>
+                                {% endif %}
+
+                                <h3>
+                                    {{ event.title|default:"Timeline event" }}
+                                </h3>
+
+                                {% if event.description %}
+                                    <p>{{ event.description }}</p>
+                                {% endif %}
+
+                            </div>
+
+                        </li>
+                    {% endfor %}
+
+                </ol>
+            {% else %}
+                <div class="empty-state">
+                    <div
+                        class="empty-state-icon"
+                        aria-hidden="true"
+                    >
+                        ◷
+                    </div>
+
+                    <h3>No timeline events</h3>
+
+                    <p>
+                        Important investigation events will be shown
+                        in the timeline preview.
+                    </p>
+
+                    <a
+                        href="{% url 'timeline' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                        class="button button-secondary"
+                    >
+                        View Timeline
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+
+        <!-- =========================
+             GRAPH PREVIEW
+        ========================== -->
+
+        <section
+            class="case-detail-panel graph-preview-panel"
+            aria-labelledby="graph-preview-heading"
+        >
+            <header class="panel-header">
+                <div>
+                    <h2 id="graph-preview-heading">
+                        Evidence Graph Preview
+                    </h2>
+
+                    <p>
+                        Relationships between people, evidence, and case entities.
+                    </p>
+                </div>
+
+                <a
+                    href="{% url 'graph' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                    class="panel-header-link"
+                >
+                    View Full Graph
+                </a>
+            </header>
+
+            {% if graph_preview %}
+                <div
+                    class="graph-preview"
+                    id="caseGraphPreview"
+                    data-case-id="{{ case.id|default:'' }}"
+                    aria-label="Evidence relationship graph preview"
+                >
+                    {% block graph_preview %}
+                        {{ graph_preview }}
+                    {% endblock %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div
+                        class="empty-state-icon"
+                        aria-hidden="true"
+                    >
+                        ⌘
+                    </div>
+
+                    <h3>Graph preview unavailable</h3>
+
+                    <p>
+                        Relationships between case entities will appear
+                        here when sufficient structured information is available.
+                    </p>
+
+                    <a
+                        href="{% url 'graph' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                        class="button button-secondary"
+                    >
+                        View Graph
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+
+        <!-- =========================
+             LEGAL INTELLIGENCE
+        ========================== -->
+
+        <section
+            class="case-detail-panel legal-intelligence-panel"
+            aria-labelledby="legal-intelligence-heading"
+        >
+            <header class="panel-header">
+                <div>
+                    <h2 id="legal-intelligence-heading">
+                        Legal Intelligence Summary
+                    </h2>
+
+                    <p>
+                        Relevant legal information and investigation guidance.
+                    </p>
+                </div>
+
+                <a
+                    href="{% url 'legal_intelligence' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                    class="panel-header-link"
+                >
+                    View Legal Intelligence
+                </a>
+            </header>
+
+            {% if legal_intelligence %}
+                <div class="legal-intelligence-content">
+
+                    {% if legal_intelligence.summary %}
+                        <div class="legal-summary">
+                            <h3>Summary</h3>
+                            <p>{{ legal_intelligence.summary }}</p>
+                        </div>
+                    {% endif %}
+
+                    {% if legal_intelligence.sections %}
+                        <div class="legal-sections">
+                            {% for section in legal_intelligence.sections %}
+                                <article class="legal-section">
+                                    <h3>
+                                        {{ section.title }}
+                                    </h3>
+
+                                    {% if section.content %}
+                                        <p>{{ section.content }}</p>
+                                    {% endif %}
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if legal_intelligence.disclaimer %}
+                        <p class="legal-disclaimer">
+                            {{ legal_intelligence.disclaimer }}
+                        </p>
+                    {% endif %}
+
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div
+                        class="empty-state-icon"
+                        aria-hidden="true"
+                    >
+                        ⚖
+                    </div>
+
+                    <h3>No legal intelligence available</h3>
+
+                    <p>
+                        Relevant legal intelligence and analysis will
+                        appear here when available.
+                    </p>
+
+                    <a
+                        href="{% url 'legal_intelligence' %}{% if case.id %}?case={{ case.id }}{% endif %}"
+                        class="button button-secondary"
+                    >
+                        Open Legal Intelligence
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+
+        <!-- =========================
+             EVIDENCE GAPS / ACTIONS
+        ========================== -->
+
+        <section
+            class="case-detail-panel evidence-gaps-panel"
+            aria-labelledby="evidence-gaps-heading"
+        >
+            <header class="panel-header">
+                <div>
+                    <h2 id="evidence-gaps-heading">
+                        Evidence Gaps / Pending Actions
+                    </h2>
+
+                    <p>
+                        Areas requiring further investigation or verification.
+                    </p>
+                </div>
+            </header>
+
+            {% if evidence_gaps or pending_actions %}
+
+                {% if evidence_gaps %}
+                    <div class="case-gap-section">
+                        <h3>Evidence Gaps</h3>
+
+                        <ul class="gap-list">
+                            {% for gap in evidence_gaps %}
+                                <li class="gap-list-item">
+                                    <span
+                                        class="gap-icon"
+                                        aria-hidden="true"
+                                    >
+                                        !
+                                    </span>
+
+                                    <div>
+                                        <strong>
+                                            {{ gap.title|default:"Evidence gap" }}
+                                        </strong>
+
+                                        {% if gap.description %}
+                                            <p>
+                                                {{ gap.description }}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+
+                {% if pending_actions %}
+                    <div class="case-gap-section">
+                        <h3>Pending Actions</h3>
+
+                        <ul class="pending-action-list">
+                            {% for action in pending_actions %}
+                                <li class="pending-action-item">
+
+                                    <div>
+                                        <strong>
+                                            {{ action.title|default:"Pending action" }}
+                                        </strong>
+
+                                        {% if action.description %}
+                                            <p>
+                                                {{ action.description }}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if action.url %}
+                                        <a
+                                            href="{{ action.url }}"
+                                            class="button button-small button-secondary"
+                                        >
+                                            Review
+                                        </a>
+                                    {% endif %}
+
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+            {% else %}
+
+                <div class="empty-state">
+                    <div
+                        class="empty-state-icon"
+                        aria-hidden="true"
+                    >
+                        ✓
+                    </div>
+
+                    <h3>No evidence gaps recorded</h3>
+
+                    <p>
+                        Evidence gaps and pending investigation actions
+                        can be added here as the investigation progresses.
+                    </p>
+
+                    <span class="placeholder-note">
+                        Evidence gap analysis placeholder
+                    </span>
+                </div>
+
+            {% endif %}
+        </section>
+
+
+        <!-- =========================
+             CASE-SPECIFIC EXTENSION
+        ========================== -->
+
+        {% block case_extra %}
+        {% endblock %}
+
+    {% else %}
+
+        <!-- =========================
+             CASE NOT AVAILABLE
+        ========================== -->
+
+        <section
+            class="case-not-found empty-state empty-state-large"
+            aria-labelledby="case-not-found-heading"
+        >
+            <div
+                class="empty-state-icon"
+                aria-hidden="true"
+            >
+                !
+            </div>
+
+            <h1 id="case-not-found-heading">
+                Case not available
+            </h1>
+
+            <p>
+                The requested investigation case could not be loaded.
+                It may not exist or may no longer be available.
+            </p>
+
+            <a
+                href="{% url 'case_list' %}"
+                class="button button-primary"
+            >
+                Back to Cases
+            </a>
+        </section>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+    <script src="{% static 'js/case.js' %}"></script>
+{% endblock %}

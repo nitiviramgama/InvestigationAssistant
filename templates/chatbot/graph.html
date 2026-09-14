@@ -1,0 +1,850 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}Evidence Graph | IO Assistant{% endblock %}
+
+{% block page_title %}Evidence Graph{% endblock %}
+
+{% block page_subtitle %}
+    Explore relationships between people, evidence, events, devices, accounts, and locations
+{% endblock %}
+
+{% block nav_graph %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/graph.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<section
+    class="graph-page"
+    id="graphPage"
+    aria-labelledby="graph-heading"
+    data-case-id="{{ case.id|default:'' }}"
+    data-graph-endpoint="{% if case.id %}/api/case/{{ case.id }}/graph/{% endif %}"
+>
+
+    <!-- =========================
+         CASE HEADER
+    ========================== -->
+
+    <header class="graph-page-header">
+
+        <div class="graph-header-content">
+
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="{% url 'case_list' %}">
+                    Cases
+                </a>
+
+                <span aria-hidden="true">/</span>
+
+                {% if case.id %}
+                    <a href="{% url 'case_detail' case.id %}">
+                        {{ case.case_number|default:"Case" }}
+                    </a>
+
+                    <span aria-hidden="true">/</span>
+                {% endif %}
+
+                <span aria-current="page">
+                    Evidence Graph
+                </span>
+            </nav>
+
+            <div class="graph-case-heading">
+
+                <div>
+                    <span class="graph-case-label">
+                        Evidence &amp; Entity Relationships
+                    </span>
+
+                    <h1 id="graph-heading">
+                        {{ case.title|default:"Investigation Graph" }}
+                    </h1>
+
+                    {% if case.case_number %}
+                        <p class="graph-case-number">
+                            Case Number: {{ case.case_number }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                {% if case.status %}
+                    <span
+                        class="case-status-badge case-status-{{ case.status|lower }}"
+                    >
+                        <span
+                            class="status-dot"
+                            aria-hidden="true"
+                        ></span>
+
+                        {{ case.status }}
+                    </span>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================
+         MESSAGE / ERROR AREA
+    ========================== -->
+
+    {% if messages %}
+        <section
+            class="graph-messages"
+            aria-label="Graph messages"
+            aria-live="polite"
+        >
+            {% for message in messages %}
+                <div
+                    class="graph-message{% if message.tags %} graph-message-{{ message.tags }}{% endif %}"
+                    role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                >
+                    <span
+                        class="graph-message-icon"
+                        aria-hidden="true"
+                    >
+                        {% if message.tags == "success" %}
+                            ✓
+                        {% elif message.tags == "error" %}
+                            !
+                        {% elif message.tags == "warning" %}
+                            ⚠
+                        {% else %}
+                            i
+                        {% endif %}
+                    </span>
+
+                    <span class="graph-message-text">
+                        {{ message }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="graph-message-close"
+                        aria-label="Dismiss message"
+                    >
+                        &times;
+                    </button>
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+
+    <!-- =========================
+         GRAPH TOOLBAR
+    ========================== -->
+
+    <section
+        class="graph-toolbar"
+        id="graphToolbar"
+        aria-labelledby="graph-toolbar-heading"
+    >
+
+        <div class="graph-toolbar-header">
+            <div>
+                <h2 id="graph-toolbar-heading">
+                    Graph Controls
+                </h2>
+
+                <p>
+                    Filter and search the relationship graph.
+                </p>
+            </div>
+
+            <div class="graph-toolbar-actions">
+
+                <button
+                    type="button"
+                    class="button button-secondary"
+                    id="resetGraphFilters"
+                    data-reset-graph-filters
+                >
+                    Reset
+                </button>
+
+                <button
+                    type="button"
+                    class="button button-secondary"
+                    id="refreshGraphButton"
+                    data-refresh-graph
+                >
+                    <span aria-hidden="true">↻</span>
+                    <span>Refresh</span>
+                </button>
+
+            </div>
+        </div>
+
+
+        <!-- =========================
+             ENTITY SEARCH
+        ========================== -->
+
+        <div class="graph-search-section">
+
+            <label for="entitySearch">
+                Search Entity
+            </label>
+
+            <div class="graph-search-wrapper">
+
+                <span
+                    class="graph-search-icon"
+                    aria-hidden="true"
+                >
+                    ⌕
+                </span>
+
+                <input
+                    type="search"
+                    id="entitySearch"
+                    name="entity"
+                    class="graph-search-input"
+                    placeholder="Search person, phone, device, account..."
+                    autocomplete="off"
+                    data-entity-search
+                    aria-describedby="entitySearchHelp"
+                >
+
+                <button
+                    type="button"
+                    class="graph-search-clear"
+                    id="clearEntitySearch"
+                    data-clear-entity-search
+                    aria-label="Clear entity search"
+                    hidden
+                >
+                    &times;
+                </button>
+
+            </div>
+
+            <span
+                class="form-help-text"
+                id="entitySearchHelp"
+            >
+                Search for an entity to highlight related nodes.
+            </span>
+
+        </div>
+
+
+        <!-- =========================
+             NODE TYPE FILTERS
+        ========================== -->
+
+        <fieldset
+            class="graph-filter-group"
+            id="nodeTypeFilters"
+        >
+            <legend>
+                Node Types
+            </legend>
+
+            <div class="graph-filter-options">
+
+                <label class="graph-filter-option">
+                    <input
+                        type="checkbox"
+                        name="node_type"
+                        value="person"
+                        data-node-type="person"
+                        checked
+                    >
+                    <span class="graph-filter-control"></span>
+                    <span class="graph-filter-label">Person</span>
+                </label>
+
+
+                <label class="graph-filter-option">
+                    <input
+                        type="checkbox"
+                        name="node_type"
+                        value="phone"
+                        data-node-type="phone"
+                        checked
+                    >
+                    <span class="graph-filter-control"></span>
+                    <span class="graph-filter-label">Phone</span>
+                </label>
+
+
+                <label class="graph-filter-option">
+                    <input
+                        type="checkbox"
+                        name="node_type"
+                        value="device"
+                        data-node-type="device"
+                        checked
+                    >
+                    <span class="graph-filter-control"></span>
+                    <span class="graph-filter-label">Device</span>
+                </label>
+
+
+                <label class="graph-filter-option">
+                    <input
+                        type="checkbox"
+                        name="node_type"
+                        value="account"
+                        data-node-type="account"
+                        checked
+                    >
+                    <span class="graph-filter-control"></span>
+                    <span class="graph-filter-label">Account</span>
+                </label>
+
+
+                <label class="graph-filter-option">
+                    <input
+                        type="checkbox"
+                        name="node_type"
+                        value="evidence"
+                        data-node-type="evidence"
+                        checked
+                    >
+                    <span class="graph-filter-control"></span>
+                    <span class="graph-filter-label">Evidence</span>
+                </label>
+
+
+                <label class="graph-filter-option">
+                    <input
+                        type="checkbox"
+                        name="node_type"
+                        value="event"
+                        data-node-type="event"
+                        checked
+                    >
+                    <span class="graph-filter-control"></span>
+                    <span class="graph-filter-label">Event</span>
+                </label>
+
+
+                <label class="graph-filter-option">
+                    <input
+                        type="checkbox"
+                        name="node_type"
+                        value="location"
+                        data-node-type="location"
+                        checked
+                    >
+                    <span class="graph-filter-control"></span>
+                    <span class="graph-filter-label">Location</span>
+                </label>
+
+            </div>
+        </fieldset>
+
+
+        <!-- =========================
+             RELATIONSHIP FILTER
+        ========================== -->
+
+        <fieldset
+            class="graph-filter-group relationship-filter-group"
+            id="relationshipFilters"
+        >
+            <legend>
+                Relationships
+            </legend>
+
+            <div class="relationship-filter-content">
+
+                <label for="relationshipFilter">
+                    Relationship Type
+                </label>
+
+                <select
+                    id="relationshipFilter"
+                    name="relationship"
+                    class="graph-filter-select"
+                    data-relationship-filter
+                >
+                    <option value="">
+                        All relationships
+                    </option>
+
+                    {% if relationship_types %}
+                        {% for relationship in relationship_types %}
+                            <option
+                                value="{{ relationship.value }}"
+                            >
+                                {{ relationship.label|default:relationship.value }}
+                            </option>
+                        {% endfor %}
+                    {% elif available_relationships %}
+                        {% for relationship in available_relationships %}
+                            <option value="{{ relationship }}">
+                                {{ relationship }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+
+                <span class="form-help-text">
+                    Filter the connections displayed between graph nodes.
+                </span>
+
+            </div>
+        </fieldset>
+
+    </section>
+
+
+    <!-- =========================
+         GRAPH WORKSPACE
+    ========================== -->
+
+    <div class="graph-workspace">
+
+        <!-- =========================
+             GRAPH VISUALIZATION
+        ========================== -->
+
+        <section
+            class="graph-visualization-panel"
+            aria-labelledby="graph-visualization-heading"
+        >
+
+            <header class="graph-panel-header">
+
+                <div>
+                    <h2 id="graph-visualization-heading">
+                        Relationship Graph
+                    </h2>
+
+                    <p
+                        id="graphResultSummary"
+                        aria-live="polite"
+                    >
+                        {% if graph_node_count is not None %}
+                            {{ graph_node_count }} node{{ graph_node_count|pluralize }}
+                            {% if graph_edge_count is not None %}
+                                &middot;
+                                {{ graph_edge_count }} relationship{{ graph_edge_count|pluralize }}
+                            {% endif %}
+                        {% else %}
+                            Explore case relationships
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="graph-view-controls">
+
+                    <button
+                        type="button"
+                        class="graph-view-button"
+                        id="zoomInButton"
+                        data-graph-zoom-in
+                        aria-label="Zoom in"
+                        title="Zoom in"
+                    >
+                        +
+                    </button>
+
+                    <button
+                        type="button"
+                        class="graph-view-button"
+                        id="zoomOutButton"
+                        data-graph-zoom-out
+                        aria-label="Zoom out"
+                        title="Zoom out"
+                    >
+                        −
+                    </button>
+
+                    <button
+                        type="button"
+                        class="graph-view-button"
+                        id="fitGraphButton"
+                        data-graph-fit
+                        aria-label="Fit graph to view"
+                        title="Fit graph to view"
+                    >
+                        ⛶
+                    </button>
+
+                </div>
+
+            </header>
+
+
+            <!-- Graph Container -->
+            <div
+                class="graph-container"
+                id="evidenceGraph"
+                data-graph-container
+                role="img"
+                aria-label="Evidence and entity relationship graph"
+                tabindex="0"
+            >
+
+                <!-- JavaScript renders the graph here. -->
+
+                <div
+                    class="graph-loading-state"
+                    id="graphLoadingState"
+                    aria-live="polite"
+                    hidden
+                >
+                    <div
+                        class="graph-loading-indicator"
+                        aria-hidden="true"
+                    ></div>
+
+                    <div>
+                        <h3>Loading graph</h3>
+
+                        <p>
+                            Retrieving evidence and entity relationships.
+                        </p>
+                    </div>
+                </div>
+
+
+                <div
+                    class="graph-error-state"
+                    id="graphErrorState"
+                    role="alert"
+                    aria-live="assertive"
+                    hidden
+                >
+                    <div
+                        class="graph-state-icon"
+                        aria-hidden="true"
+                    >
+                        !
+                    </div>
+
+                    <div class="graph-state-content">
+                        <h3>Unable to load graph</h3>
+
+                        <p id="graphErrorMessage">
+                            The evidence graph could not be loaded.
+                            Please try again.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="graphRetryButton"
+                        data-graph-retry
+                    >
+                        Try Again
+                    </button>
+                </div>
+
+
+                <div
+                    class="graph-empty-state"
+                    id="graphEmptyState"
+                    aria-labelledby="graph-empty-heading"
+                    hidden
+                >
+                    <div
+                        class="graph-empty-icon"
+                        aria-hidden="true"
+                    >
+                        ⌘
+                    </div>
+
+                    <h3 id="graph-empty-heading">
+                        No graph data available
+                    </h3>
+
+                    <p>
+                        Relationships between people, evidence, events,
+                        and other entities will appear here when graph
+                        data is available.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             SELECTED NODE DETAILS
+        ========================== -->
+
+        <aside
+            class="selected-node-panel"
+            id="selectedNodePanel"
+            aria-labelledby="selected-node-heading"
+            aria-live="polite"
+        >
+
+            <header class="selected-node-header">
+
+                <div>
+                    <span class="selected-node-label">
+                        Selected Entity
+                    </span>
+
+                    <h2 id="selected-node-heading">
+                        Entity Details
+                    </h2>
+                </div>
+
+                <button
+                    type="button"
+                    class="selected-node-close"
+                    id="closeSelectedNode"
+                    data-close-selected-node
+                    aria-label="Close entity details"
+                    hidden
+                >
+                    &times;
+                </button>
+
+            </header>
+
+
+            <!-- No Node Selected -->
+            <div
+                class="selected-node-empty"
+                id="selectedNodeEmpty"
+            >
+                <div
+                    class="selected-node-empty-icon"
+                    aria-hidden="true"
+                >
+                    ◉
+                </div>
+
+                <h3>No entity selected</h3>
+
+                <p>
+                    Select a person, device, account, evidence item,
+                    event, phone, or location in the graph to view
+                    its details.
+                </p>
+            </div>
+
+
+            <!-- Node Details -->
+            <div
+                class="selected-node-details"
+                id="selectedNodeDetails"
+                data-selected-node-details
+                hidden
+            >
+
+                <div class="selected-node-identity">
+
+                    <div
+                        class="selected-node-type-icon"
+                        id="selectedNodeTypeIcon"
+                        aria-hidden="true"
+                    >
+                        ◉
+                    </div>
+
+                    <div>
+                        <span
+                            class="selected-node-type"
+                            id="selectedNodeType"
+                        >
+                            Entity
+                        </span>
+
+                        <h3 id="selectedNodeName">
+                            —
+                        </h3>
+                    </div>
+
+                </div>
+
+
+                <dl class="selected-node-properties">
+
+                    <div class="selected-node-property">
+                        <dt>Type</dt>
+                        <dd id="selectedNodePropertyType">—</dd>
+                    </div>
+
+                    <div
+                        class="selected-node-property"
+                        id="selectedNodeReferenceRow"
+                        hidden
+                    >
+                        <dt>Reference</dt>
+                        <dd id="selectedNodeReference">—</dd>
+                    </div>
+
+                    <div
+                        class="selected-node-property"
+                        id="selectedNodeStatusRow"
+                        hidden
+                    >
+                        <dt>Status</dt>
+                        <dd id="selectedNodeStatus">—</dd>
+                    </div>
+
+                    <div
+                        class="selected-node-property"
+                        id="selectedNodeDescriptionRow"
+                        hidden
+                    >
+                        <dt>Description</dt>
+                        <dd id="selectedNodeDescription">—</dd>
+                    </div>
+
+                </dl>
+
+
+                <!-- Connections -->
+                <section
+                    class="selected-node-connections"
+                    aria-labelledby="selected-node-connections-heading"
+                >
+                    <h3 id="selected-node-connections-heading">
+                        Connections
+                    </h3>
+
+                    <div
+                        id="selectedNodeConnections"
+                        data-selected-node-connections
+                    >
+                        <p class="selected-node-no-connections">
+                            No connection details available.
+                        </p>
+                    </div>
+                </section>
+
+            </div>
+
+        </aside>
+
+    </div>
+
+
+    <!-- =========================
+         LEGEND
+    ========================== -->
+
+    <section
+        class="graph-legend"
+        aria-labelledby="graph-legend-heading"
+    >
+
+        <header class="graph-legend-header">
+            <h2 id="graph-legend-heading">
+                Legend
+            </h2>
+        </header>
+
+        <div class="graph-legend-items">
+
+            <span
+                class="graph-legend-item graph-legend-person"
+                data-legend-type="person"
+            >
+                <span
+                    class="graph-legend-marker"
+                    aria-hidden="true"
+                ></span>
+                <span>Person</span>
+            </span>
+
+            <span
+                class="graph-legend-item graph-legend-phone"
+                data-legend-type="phone"
+            >
+                <span
+                    class="graph-legend-marker"
+                    aria-hidden="true"
+                ></span>
+                <span>Phone</span>
+            </span>
+
+            <span
+                class="graph-legend-item graph-legend-device"
+                data-legend-type="device"
+            >
+                <span
+                    class="graph-legend-marker"
+                    aria-hidden="true"
+                ></span>
+                <span>Device</span>
+            </span>
+
+            <span
+                class="graph-legend-item graph-legend-account"
+                data-legend-type="account"
+            >
+                <span
+                    class="graph-legend-marker"
+                    aria-hidden="true"
+                ></span>
+                <span>Account</span>
+            </span>
+
+            <span
+                class="graph-legend-item graph-legend-evidence"
+                data-legend-type="evidence"
+            >
+                <span
+                    class="graph-legend-marker"
+                    aria-hidden="true"
+                ></span>
+                <span>Evidence</span>
+            </span>
+
+            <span
+                class="graph-legend-item graph-legend-event"
+                data-legend-type="event"
+            >
+                <span
+                    class="graph-legend-marker"
+                    aria-hidden="true"
+                ></span>
+                <span>Event</span>
+            </span>
+
+            <span
+                class="graph-legend-item graph-legend-location"
+                data-legend-type="location"
+            >
+                <span
+                    class="graph-legend-marker"
+                    aria-hidden="true"
+                ></span>
+                <span>Location</span>
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         GRAPH STATUS / ACCESSIBILITY
+    ========================== -->
+
+    <div
+        class="graph-live-region"
+        id="graphLiveRegion"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+    <script src="{% static 'js/graph.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,501 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}New Case | IO Assistant{% endblock %}
+
+{% block page_title %}Create New Case{% endblock %}
+
+{% block page_subtitle %}
+    Register a new investigation case
+{% endblock %}
+
+{% block nav_cases %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/case.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<section class="new-case-page" aria-labelledby="new-case-heading">
+
+    <!-- =========================
+         PAGE HEADER
+    ========================== -->
+
+    <header class="page-section-header">
+        <div class="page-section-heading">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="{% url 'case_list' %}">Cases</a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">New Case</span>
+            </nav>
+
+            <h2 id="new-case-heading">Create New Investigation Case</h2>
+
+            <p>
+                Enter the available case and incident information to create
+                a new investigation record.
+            </p>
+        </div>
+    </header>
+
+
+    <!-- =========================
+         SUCCESS / MESSAGE AREA
+    ========================== -->
+
+    {% if messages %}
+        <section
+            class="case-messages"
+            aria-label="Case messages"
+            aria-live="polite"
+        >
+            {% for message in messages %}
+                <div
+                    class="case-message{% if message.tags %} case-message-{{ message.tags }}{% endif %}"
+                    role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                >
+                    <span class="case-message-icon" aria-hidden="true">
+                        {% if message.tags == "success" %}
+                            ✓
+                        {% elif message.tags == "error" %}
+                            !
+                        {% elif message.tags == "warning" %}
+                            ⚠
+                        {% else %}
+                            i
+                        {% endif %}
+                    </span>
+
+                    <span class="case-message-text">
+                        {{ message }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="case-message-close"
+                        aria-label="Dismiss message"
+                    >
+                        &times;
+                    </button>
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+
+    {% if form.non_field_errors %}
+        <section
+            class="form-error-summary"
+            role="alert"
+            aria-labelledby="form-error-heading"
+        >
+            <h2 id="form-error-heading">Please correct the following errors</h2>
+
+            <ul>
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+
+    <!-- =========================
+         CASE FORM
+    ========================== -->
+
+    <form
+        method="post"
+        action=""
+        class="case-form"
+        id="newCaseForm"
+        novalidate
+    >
+        {% csrf_token %}
+
+        <fieldset class="form-section">
+            <legend class="form-section-title">
+                Case Information
+            </legend>
+
+            <p class="form-section-description">
+                Provide the basic identification and status of the investigation.
+            </p>
+
+
+            <!-- Case Number / Reference -->
+            <div class="form-field">
+                <label for="{{ form.case_number.id_for_label }}">
+                    Case Number / Reference
+                </label>
+
+                {% if form.case_number %}
+                    {{ form.case_number }}
+                {% else %}
+                    <input
+                        type="text"
+                        id="case_number"
+                        name="case_number"
+                        class="form-input"
+                        value="{{ request.POST.case_number|default:'' }}"
+                        autocomplete="off"
+                    >
+                {% endif %}
+
+                {% if form.case_number.help_text %}
+                    <span class="form-help-text">
+                        {{ form.case_number.help_text }}
+                    </span>
+                {% endif %}
+
+                {% if form.case_number.errors %}
+                    <div
+                        class="field-error"
+                        id="{{ form.case_number.id_for_label }}-error"
+                        role="alert"
+                    >
+                        {% for error in form.case_number.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <!-- Case Title -->
+            <div class="form-field">
+                <label for="{{ form.title.id_for_label }}">
+                    Case Title
+                </label>
+
+                {% if form.title %}
+                    {{ form.title }}
+                {% else %}
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        class="form-input"
+                        value="{{ request.POST.title|default:'' }}"
+                        autocomplete="off"
+                    >
+                {% endif %}
+
+                {% if form.title.help_text %}
+                    <span class="form-help-text">
+                        {{ form.title.help_text }}
+                    </span>
+                {% endif %}
+
+                {% if form.title.errors %}
+                    <div
+                        class="field-error"
+                        id="{{ form.title.id_for_label }}-error"
+                        role="alert"
+                    >
+                        {% for error in form.title.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <!-- Status -->
+            <div class="form-field">
+                <label for="{{ form.status.id_for_label }}">
+                    Status
+                </label>
+
+                {% if form.status %}
+                    {{ form.status }}
+                {% else %}
+                    <select
+                        id="status"
+                        name="status"
+                        class="form-select"
+                    >
+                        <option value="">Select status</option>
+                        {% if status_choices %}
+                            {% for status in status_choices %}
+                                <option
+                                    value="{{ status.value }}"
+                                    {% if request.POST.status == status.value %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ status.label|default:status.value }}
+                                </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                {% endif %}
+
+                {% if form.status.help_text %}
+                    <span class="form-help-text">
+                        {{ form.status.help_text }}
+                    </span>
+                {% endif %}
+
+                {% if form.status.errors %}
+                    <div
+                        class="field-error"
+                        id="{{ form.status.id_for_label }}-error"
+                        role="alert"
+                    >
+                        {% for error in form.status.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+        </fieldset>
+
+
+        <!-- =========================
+             INCIDENT INFORMATION
+        ========================== -->
+
+        <fieldset class="form-section">
+            <legend class="form-section-title">
+                Incident Information
+            </legend>
+
+            <p class="form-section-description">
+                Record the available information about the complaint or incident.
+            </p>
+
+
+            <!-- Complaint / FIR Summary -->
+            <div class="form-field form-field-full">
+                <label for="{{ form.summary.id_for_label }}">
+                    Complaint / FIR Summary
+                </label>
+
+                {% if form.summary %}
+                    {{ form.summary }}
+                {% else %}
+                    <textarea
+                        id="summary"
+                        name="summary"
+                        class="form-textarea"
+                        rows="6"
+                        placeholder="Enter a concise summary of the complaint or FIR..."
+                    >{{ request.POST.summary|default:'' }}</textarea>
+                {% endif %}
+
+                {% if form.summary.help_text %}
+                    <span class="form-help-text">
+                        {{ form.summary.help_text }}
+                    </span>
+                {% endif %}
+
+                {% if form.summary.errors %}
+                    <div
+                        class="field-error"
+                        id="{{ form.summary.id_for_label }}-error"
+                        role="alert"
+                    >
+                        {% for error in form.summary.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <!-- Incident Date / Time -->
+            <div class="form-field">
+                <label for="{{ form.incident_datetime.id_for_label }}">
+                    Incident Date / Time
+                </label>
+
+                {% if form.incident_datetime %}
+                    {{ form.incident_datetime }}
+                {% elif form.incident_date %}
+                    {{ form.incident_date }}
+                {% else %}
+                    <input
+                        type="datetime-local"
+                        id="incident_datetime"
+                        name="incident_datetime"
+                        class="form-input"
+                        value="{{ request.POST.incident_datetime|default:'' }}"
+                    >
+                {% endif %}
+
+                {% if form.incident_datetime.help_text %}
+                    <span class="form-help-text">
+                        {{ form.incident_datetime.help_text }}
+                    </span>
+                {% endif %}
+
+                {% if form.incident_datetime.errors %}
+                    <div
+                        class="field-error"
+                        id="{{ form.incident_datetime.id_for_label }}-error"
+                        role="alert"
+                    >
+                        {% for error in form.incident_datetime.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <!-- Location -->
+            <div class="form-field">
+                <label for="{{ form.location.id_for_label }}">
+                    Location
+                </label>
+
+                {% if form.location %}
+                    {{ form.location }}
+                {% else %}
+                    <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        class="form-input"
+                        value="{{ request.POST.location|default:'' }}"
+                        placeholder="Enter incident location"
+                        autocomplete="off"
+                    >
+                {% endif %}
+
+                {% if form.location.help_text %}
+                    <span class="form-help-text">
+                        {{ form.location.help_text }}
+                    </span>
+                {% endif %}
+
+                {% if form.location.errors %}
+                    <div
+                        class="field-error"
+                        id="{{ form.location.id_for_label }}-error"
+                        role="alert"
+                    >
+                        {% for error in form.location.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <!-- Initial Facts -->
+            <div class="form-field form-field-full">
+                <label for="{{ form.initial_facts.id_for_label }}">
+                    Initial Facts
+                </label>
+
+                {% if form.initial_facts %}
+                    {{ form.initial_facts }}
+                {% else %}
+                    <textarea
+                        id="initial_facts"
+                        name="initial_facts"
+                        class="form-textarea"
+                        rows="7"
+                        placeholder="Record the initial known facts of the investigation..."
+                    >{{ request.POST.initial_facts|default:'' }}</textarea>
+                {% endif %}
+
+                {% if form.initial_facts.help_text %}
+                    <span class="form-help-text">
+                        {{ form.initial_facts.help_text }}
+                    </span>
+                {% endif %}
+
+                {% if form.initial_facts.errors %}
+                    <div
+                        class="field-error"
+                        id="{{ form.initial_facts.id_for_label }}-error"
+                        role="alert"
+                    >
+                        {% for error in form.initial_facts.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+        </fieldset>
+
+
+        <!-- =========================
+             GENERIC FORM FIELDS
+             Supports additional fields
+             defined by an existing CaseForm
+             without requiring new database
+             fields in this template.
+        ========================== -->
+
+        {% if form %}
+            {% for field in form %}
+                {% if field.name != "case_number" and field.name != "title" and field.name != "summary" and field.name != "incident_datetime" and field.name != "incident_date" and field.name != "location" and field.name != "initial_facts" and field.name != "status" %}
+                    <div class="form-field">
+                        {{ field.label_tag }}
+
+                        {{ field }}
+
+                        {% if field.help_text %}
+                            <span class="form-help-text">
+                                {{ field.help_text }}
+                            </span>
+                        {% endif %}
+
+                        {% if field.errors %}
+                            <div
+                                class="field-error"
+                                id="{{ field.id_for_label }}-error"
+                                role="alert"
+                            >
+                                {% for error in field.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+
+        <!-- =========================
+             FORM ACTIONS
+        ========================== -->
+
+        <footer class="form-actions">
+
+            <a
+                href="{% url 'case_list' %}"
+                class="button button-secondary"
+            >
+                Cancel
+            </a>
+
+            <button
+                type="submit"
+                class="button button-primary"
+                id="createCaseButton"
+            >
+                Create Case
+            </button>
+
+        </footer>
+
+    </form>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+    <script src="{% static 'js/case.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,1021 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}Cases | IO Assistant{% endblock %}
+
+{% block page_title %}Investigation Cases{% endblock %}
+
+{% block page_subtitle %}
+    View, search, and manage investigation cases
+{% endblock %}
+
+{% block nav_cases %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/case.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<section
+    class="case-list-page"
+    data-case-list-page
+    data-current-page="{{ page_obj.number|default:1 }}"
+    data-page-size="{{ page_obj.paginator.per_page|default:20 }}"
+    aria-labelledby="cases-heading"
+>
+
+    <!-- ================================================================
+         PAGE HEADER
+    ================================================================= -->
+    <header class="case-list-header">
+
+        <div class="case-list-header-main">
+            <div class="case-list-eyebrow">
+                INVESTIGATION WORKSPACE
+            </div>
+
+            <h1 id="cases-heading">
+                Investigation Cases
+            </h1>
+
+            <p>
+                Search and review all investigation cases available in the system.
+            </p>
+        </div>
+
+        <div class="case-list-actions">
+            <a
+                href="{% url 'case_create' %}"
+                class="btn btn-primary"
+            >
+                <span aria-hidden="true">+</span>
+                <span>New Case</span>
+            </a>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                data-case-refresh
+                aria-label="Refresh cases"
+            >
+                Refresh
+            </button>
+        </div>
+
+    </header>
+
+
+    <!-- ================================================================
+         DJANGO MESSAGES
+    ================================================================= -->
+    {% if messages %}
+        <section
+            class="case-messages"
+            aria-label="Case messages"
+            aria-live="polite"
+        >
+            {% for message in messages %}
+
+                <div
+                    class="case-message{% if message.tags %} case-message-{{ message.tags }}{% endif %}"
+                    role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                    data-case-message
+                >
+
+                    <span
+                        class="case-message-icon"
+                        aria-hidden="true"
+                    >
+                        {% if message.tags == "success" %}
+                            ✓
+                        {% elif message.tags == "error" %}
+                            !
+                        {% elif message.tags == "warning" %}
+                            ⚠
+                        {% else %}
+                            i
+                        {% endif %}
+                    </span>
+
+                    <span class="case-message-text">
+                        {{ message }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="case-message-close"
+                        aria-label="Dismiss message"
+                    >
+                        &times;
+                    </button>
+
+                </div>
+
+            {% endfor %}
+        </section>
+    {% endif %}
+
+
+    <!-- ================================================================
+         SERVER ERROR
+    ================================================================= -->
+    {% if case_error %}
+        <section
+            class="case-list-error"
+            role="alert"
+            aria-live="assertive"
+        >
+
+            <div class="case-error-content">
+
+                <span
+                    class="case-error-icon"
+                    aria-hidden="true"
+                >
+                    !
+                </span>
+
+                <div>
+                    <h2>Unable to load cases</h2>
+                    <p data-error-message>
+                        {{ case_error }}
+                    </p>
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                data-case-refresh
+            >
+                Try Again
+            </button>
+
+        </section>
+    {% endif %}
+
+
+    <!-- ================================================================
+         SEARCH & FILTER
+    ================================================================= -->
+    <section
+        class="case-list-toolbar"
+        aria-labelledby="case-filters-heading"
+    >
+
+        <div class="case-list-toolbar-header">
+
+            <div>
+                <span class="section-eyebrow">
+                    CASE MANAGEMENT
+                </span>
+
+                <h2 id="case-filters-heading">
+                    Search &amp; Filter
+                </h2>
+
+                <p>
+                    Refine the case list using the available filters.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-secondary btn-small"
+                data-case-filter-reset
+            >
+                Clear Filters
+            </button>
+
+        </div>
+
+
+        <form
+            id="caseFilterForm"
+            class="case-list-filters"
+            method="get"
+            action="{% url 'case_list' %}"
+            role="search"
+        >
+
+            <!-- Search -->
+            <div class="case-filter-group case-filter-search">
+
+                <label for="caseSearch">
+                    Search cases
+                </label>
+
+                <div class="case-search-wrapper">
+
+                    <span
+                        class="case-search-icon"
+                        aria-hidden="true"
+                    >
+                        ⌕
+                    </span>
+
+                    <input
+                        type="search"
+                        id="caseSearch"
+                        name="q"
+                        class="form-control"
+                        placeholder="Search by case number or title..."
+                        value="{{ request.GET.q|default:'' }}"
+                        autocomplete="off"
+                        data-case-search
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Status -->
+            <div class="case-filter-group">
+
+                <label for="caseStatus">
+                    Status
+                </label>
+
+                <select
+                    id="caseStatus"
+                    name="status"
+                    class="form-control"
+                    data-case-status-filter
+                >
+
+                    <option value="">
+                        All statuses
+                    </option>
+
+                    {% if status_choices %}
+
+                        {% for value, label in status_choices %}
+
+                            <option
+                                value="{{ value }}"
+                                {% if request.GET.status == value %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ label }}
+                            </option>
+
+                        {% endfor %}
+
+                    {% elif available_statuses %}
+
+                        {% for status in available_statuses %}
+
+                            <option
+                                value="{{ status }}"
+                                {% if request.GET.status == status %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ status }}
+                            </option>
+
+                        {% endfor %}
+
+                    {% endif %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Created From -->
+            <div class="case-filter-group">
+
+                <label for="dateFrom">
+                    Created from
+                </label>
+
+                <input
+                    type="date"
+                    id="dateFrom"
+                    name="date_from"
+                    class="form-control"
+                    value="{{ request.GET.date_from|default:'' }}"
+                    data-case-date-from
+                >
+
+            </div>
+
+
+            <!-- Created To -->
+            <div class="case-filter-group">
+
+                <label for="dateTo">
+                    Created to
+                </label>
+
+                <input
+                    type="date"
+                    id="dateTo"
+                    name="date_to"
+                    class="form-control"
+                    value="{{ request.GET.date_to|default:'' }}"
+                    data-case-date-to
+                >
+
+            </div>
+
+
+            <!-- Apply -->
+            <div class="case-filter-actions">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Apply Filters
+                </button>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- ================================================================
+         RESULTS
+    ================================================================= -->
+    <section
+        class="case-results"
+        aria-labelledby="case-results-heading"
+    >
+
+        <header class="case-results-summary">
+
+            <div>
+
+                <span class="section-eyebrow">
+                    CASE REGISTER
+                </span>
+
+                <h2 id="case-results-heading">
+                    Cases
+                </h2>
+
+                <p
+                    class="case-results-meta"
+                    data-case-results-meta
+                >
+                    {% if cases %}
+                        {{ case_count|default:cases|length }}
+                        case{{ case_count|default:cases|length|pluralize }}
+                    {% else %}
+                        No investigation cases found.
+                    {% endif %}
+                </p>
+
+            </div>
+
+
+            <div class="case-results-tools">
+
+                <label
+                    for="caseSort"
+                    class="sr-only"
+                >
+                    Sort cases
+                </label>
+
+                <select
+                    id="caseSort"
+                    name="sort"
+                    class="form-control case-sort-select"
+                    form="caseFilterForm"
+                    data-case-sort
+                >
+
+                    <option value="">
+                        Sort by
+                    </option>
+
+                    <option
+                        value="created_desc"
+                        {% if request.GET.sort == "created_desc" %}
+                            selected
+                        {% endif %}
+                    >
+                        Newest first
+                    </option>
+
+                    <option
+                        value="created_asc"
+                        {% if request.GET.sort == "created_asc" %}
+                            selected
+                        {% endif %}
+                    >
+                        Oldest first
+                    </option>
+
+                    <option
+                        value="updated_desc"
+                        {% if request.GET.sort == "updated_desc" %}
+                            selected
+                        {% endif %}
+                    >
+                        Recently updated
+                    </option>
+
+                    <option
+                        value="updated_asc"
+                        {% if request.GET.sort == "updated_asc" %}
+                            selected
+                        {% endif %}
+                    >
+                        Least recently updated
+                    </option>
+
+                </select>
+
+            </div>
+
+        </header>
+
+
+        <!-- ============================================================
+             LOADING
+        ============================================================= -->
+        <div
+            class="case-list-loading"
+            hidden
+            aria-live="polite"
+        >
+            <div class="case-loading-spinner" aria-hidden="true"></div>
+            <span>Loading investigation cases...</span>
+        </div>
+
+
+        <!-- ============================================================
+             ERROR
+        ============================================================= -->
+        <div
+            class="case-list-error"
+            hidden
+            role="alert"
+            aria-live="assertive"
+        >
+
+            <div class="case-error-content">
+
+                <span
+                    class="case-error-icon"
+                    aria-hidden="true"
+                >
+                    !
+                </span>
+
+                <div>
+                    <h3>Unable to load cases</h3>
+                    <p data-error-message>
+                        Please try again.
+                    </p>
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-secondary btn-small"
+                data-case-refresh
+            >
+                Retry
+            </button>
+
+        </div>
+
+
+        {% if cases %}
+
+            <!-- ========================================================
+                 DESKTOP TABLE
+            ========================================================= -->
+            <div
+                class="case-table-wrapper"
+                data-case-table-wrapper
+            >
+
+                <table class="case-table">
+
+                    <caption class="sr-only">
+                        Investigation cases
+                    </caption>
+
+                    <thead>
+
+                        <tr>
+                            <th scope="col">
+                                Case Number
+                            </th>
+
+                            <th scope="col">
+                                Case Title
+                            </th>
+
+                            <th scope="col">
+                                Status
+                            </th>
+
+                            <th scope="col">
+                                Created
+                            </th>
+
+                            <th scope="col">
+                                Last Updated
+                            </th>
+
+                            <th scope="col">
+                                <span class="sr-only">
+                                    Actions
+                                </span>
+                            </th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody data-case-table-body>
+
+                        {% for case in cases %}
+
+                            <tr
+                                class="case-row"
+                                data-case-row
+                                data-case-id="{{ case.id|default:'' }}"
+                            >
+
+                                <td class="case-number-cell">
+
+                                    {% if case.detail_url %}
+
+                                        <a
+                                            href="{{ case.detail_url }}"
+                                            class="case-number-link"
+                                        >
+                                            {{ case.case_number|default:"—" }}
+                                        </a>
+
+                                    {% elif case.id %}
+
+                                        <a
+                                            href="{% url 'case_detail' case.id %}"
+                                            class="case-number-link"
+                                        >
+                                            {{ case.case_number|default:"—" }}
+                                        </a>
+
+                                    {% else %}
+
+                                        <span class="case-number">
+                                            {{ case.case_number|default:"—" }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td class="case-title-cell">
+
+                                    {% if case.detail_url %}
+
+                                        <a
+                                            href="{{ case.detail_url }}"
+                                            class="case-title-link"
+                                        >
+                                            {{ case.title|default:"Untitled case" }}
+                                        </a>
+
+                                    {% elif case.id %}
+
+                                        <a
+                                            href="{% url 'case_detail' case.id %}"
+                                            class="case-title-link"
+                                        >
+                                            {{ case.title|default:"Untitled case" }}
+                                        </a>
+
+                                    {% else %}
+
+                                        <span class="case-title-link">
+                                            {{ case.title|default:"Untitled case" }}
+                                        </span>
+
+                                    {% endif %}
+
+                                    {% if case.description %}
+                                        <span class="case-description">
+                                            {{ case.description|truncatewords:12 }}
+                                        </span>
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if case.status %}
+
+                                        <span
+                                            class="case-status-badge case-status-{{ case.status|lower }}"
+                                        >
+                                            <span
+                                                class="status-dot"
+                                                aria-hidden="true"
+                                            ></span>
+
+                                            {{ case.status }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="data-unavailable">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if case.created_at %}
+
+                                        <time
+                                            datetime="{{ case.created_at|date:'c' }}"
+                                            class="case-date"
+                                        >
+                                            {{ case.created_at|date:"d M Y" }}
+                                        </time>
+
+                                    {% else %}
+
+                                        <span class="data-unavailable">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if case.updated_at %}
+
+                                        <time
+                                            datetime="{{ case.updated_at|date:'c' }}"
+                                            class="case-date"
+                                        >
+                                            {{ case.updated_at|date:"d M Y" }}
+                                        </time>
+
+                                    {% else %}
+
+                                        <span class="data-unavailable">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td class="case-actions-cell">
+
+                                    {% if case.detail_url %}
+
+                                        <a
+                                            href="{{ case.detail_url }}"
+                                            class="btn btn-secondary btn-small"
+                                        >
+                                            View
+                                        </a>
+
+                                    {% elif case.id %}
+
+                                        <a
+                                            href="{% url 'case_detail' case.id %}"
+                                            class="btn btn-secondary btn-small"
+                                        >
+                                            View
+                                        </a>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- ========================================================
+                 MOBILE CARDS
+            ========================================================= -->
+            <div
+                class="case-mobile-list"
+                data-case-mobile-list
+                aria-label="Investigation cases"
+            >
+
+                {% for case in cases %}
+
+                    <article
+                        class="case-mobile-card"
+                        data-case-card
+                        data-case-id="{{ case.id|default:'' }}"
+                    >
+
+                        <header class="case-mobile-card-header">
+
+                            <div class="case-mobile-card-title">
+
+                                {% if case.detail_url %}
+
+                                    <a
+                                        href="{{ case.detail_url }}"
+                                    >
+                                        {{ case.title|default:"Untitled case" }}
+                                    </a>
+
+                                {% elif case.id %}
+
+                                    <a
+                                        href="{% url 'case_detail' case.id %}"
+                                    >
+                                        {{ case.title|default:"Untitled case" }}
+                                    </a>
+
+                                {% else %}
+
+                                    <h3>
+                                        {{ case.title|default:"Untitled case" }}
+                                    </h3>
+
+                                {% endif %}
+
+                                <span class="case-mobile-card-number">
+                                    {{ case.case_number|default:"—" }}
+                                </span>
+
+                            </div>
+
+
+                            {% if case.status %}
+
+                                <span
+                                    class="case-status-badge case-status-{{ case.status|lower }}"
+                                >
+                                    <span
+                                        class="status-dot"
+                                        aria-hidden="true"
+                                    ></span>
+
+                                    {{ case.status }}
+                                </span>
+
+                            {% endif %}
+
+                        </header>
+
+
+                        {% if case.description %}
+
+                            <p class="case-mobile-card-description">
+                                {{ case.description|truncatewords:20 }}
+                            </p>
+
+                        {% endif %}
+
+
+                        <div class="case-mobile-card-meta">
+
+                            <div class="case-mobile-meta-item">
+
+                                <span class="case-mobile-meta-label">
+                                    Created
+                                </span>
+
+                                <span class="case-mobile-meta-value">
+
+                                    {% if case.created_at %}
+                                        {{ case.created_at|date:"d M Y" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="case-mobile-meta-item">
+
+                                <span class="case-mobile-meta-label">
+                                    Last Updated
+                                </span>
+
+                                <span class="case-mobile-meta-value">
+
+                                    {% if case.updated_at %}
+                                        {{ case.updated_at|date:"d M Y" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="case-mobile-card-actions">
+
+                            {% if case.detail_url %}
+
+                                <a
+                                    href="{{ case.detail_url }}"
+                                    class="btn btn-secondary btn-small"
+                                >
+                                    View Case
+                                </a>
+
+                            {% elif case.id %}
+
+                                <a
+                                    href="{% url 'case_detail' case.id %}"
+                                    class="btn btn-secondary btn-small"
+                                >
+                                    View Case
+                                </a>
+
+                            {% endif %}
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- ========================================================
+                 PAGINATION
+            ========================================================= -->
+            <nav
+                class="case-pagination"
+                data-case-pagination
+                aria-label="Cases pagination"
+            >
+
+                <div
+                    class="case-pagination-info"
+                    data-case-pagination-info
+                >
+                    {% if is_paginated %}
+                        Page {{ page_obj.number }}
+                        of {{ page_obj.paginator.num_pages }}
+                    {% else %}
+                        Showing all cases
+                    {% endif %}
+                </div>
+
+                <div
+                    class="case-pagination-controls"
+                    data-case-pagination-controls
+                >
+                    {% if is_paginated %}
+
+                        {% if page_obj.has_previous %}
+
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-small"
+                                data-page="{{ page_obj.previous_page_number }}"
+                            >
+                                Previous
+                            </button>
+
+                        {% endif %}
+
+
+                        <span
+                            class="btn btn-primary btn-small"
+                            aria-current="page"
+                        >
+                            {{ page_obj.number }}
+                        </span>
+
+
+                        {% if page_obj.has_next %}
+
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-small"
+                                data-page="{{ page_obj.next_page_number }}"
+                            >
+                                Next
+                            </button>
+
+                        {% endif %}
+
+                    {% endif %}
+                </div>
+
+            </nav>
+
+
+        {% else %}
+
+            <!-- ========================================================
+                 EMPTY STATE
+            ========================================================= -->
+            <section
+                class="case-list-empty case-empty-state"
+                data-case-list-empty
+                aria-labelledby="empty-cases-heading"
+            >
+
+                <div
+                    class="case-empty-icon"
+                    aria-hidden="true"
+                >
+                    +
+                </div>
+
+                <h3 id="empty-cases-heading">
+                    No investigation cases found
+                </h3>
+
+                <p>
+
+                    {% if request.GET.q or request.GET.status or request.GET.date_from or request.GET.date_to %}
+
+                        No cases match the current search or filter criteria.
+                        Try adjusting your filters or clear them to view all cases.
+
+                    {% else %}
+
+                        There are no investigation cases available yet.
+                        Create a new case to begin an investigation.
+
+                    {% endif %}
+
+                </p>
+
+
+                <div class="empty-state-actions">
+
+                    {% if request.GET.q or request.GET.status or request.GET.date_from or request.GET.date_to %}
+
+                        <a
+                            href="{% url 'case_list' %}"
+                            class="btn btn-secondary"
+                        >
+                            Clear Filters
+                        </a>
+
+                    {% endif %}
+
+
+                    <a
+                        href="{% url 'case_create' %}"
+                        class="btn btn-primary"
+                    >
+                        <span aria-hidden="true">+</span>
+                        <span>New Case</span>
+                    </a>
+
+                </div>
+
+            </section>
+
+        {% endif %}
+
+    </section>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+    <script src="{% static 'js/cases.js' %}"></script>
+{% endblock %}

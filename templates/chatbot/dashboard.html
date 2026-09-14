@@ -1,0 +1,1251 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}Dashboard | IO Assistant{% endblock %}
+
+{% block page_title %}Investigator Dashboard{% endblock %}
+
+{% block page_subtitle %}
+    Overview of active investigations, evidence, entities, and pending actions
+{% endblock %}
+
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+
+{% block content %}
+
+<section
+    class="dashboard-page"
+    id="dashboardPage"
+    data-dashboard-page
+    data-dashboard-endpoint="/api/dashboard/"
+    aria-labelledby="dashboard-heading"
+>
+
+    <!-- ================================================================
+         PAGE HEADER
+    ================================================================= -->
+
+    <header class="dashboard-page-header">
+
+        <div class="dashboard-page-heading">
+
+            <div class="dashboard-eyebrow">
+                INVESTIGATION WORKSPACE
+            </div>
+
+            <h2 id="dashboard-heading">
+                Investigation Overview
+            </h2>
+
+            <p>
+                Review current investigation activity and access essential
+                investigation tools.
+            </p>
+
+        </div>
+
+        <div class="dashboard-header-actions">
+
+            <a
+                href="{% url 'case_list' %}"
+                class="button button-primary"
+            >
+                + New Case
+            </a>
+
+            <button
+                type="button"
+                class="button button-secondary"
+                data-dashboard-refresh
+            >
+                Refresh
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- ================================================================
+         LOADING
+    ================================================================= -->
+
+    <section
+        id="dashboardLoading"
+        class="dashboard-state dashboard-loading"
+        aria-live="polite"
+        hidden
+    >
+
+        <span
+            class="dashboard-spinner"
+            aria-hidden="true"
+        ></span>
+
+        <div>
+            <strong>Loading dashboard</strong>
+            <span>Retrieving current investigation data...</span>
+        </div>
+
+    </section>
+
+
+    <!-- ================================================================
+         ERROR
+    ================================================================= -->
+
+    <section
+        id="dashboardError"
+        class="dashboard-state dashboard-error"
+        role="alert"
+        aria-live="assertive"
+        hidden
+    >
+
+        <div class="dashboard-state-icon" aria-hidden="true">
+            !
+        </div>
+
+        <div class="dashboard-state-content">
+
+            <strong class="dashboard-error-title">
+                Unable to load dashboard data.
+            </strong>
+
+            <p
+                class="dashboard-error-message"
+                data-dashboard-message
+            >
+                Please try again. If the problem continues, contact the
+                system administrator.
+            </p>
+
+        </div>
+
+        <div class="dashboard-state-actions">
+
+            <button
+                type="button"
+                class="button button-secondary button-small"
+                data-dashboard-retry
+            >
+                Retry
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================================================================
+         SUMMARY
+    ================================================================= -->
+
+    <section
+        class="dashboard-section"
+        aria-labelledby="summary-heading"
+    >
+
+        <header class="dashboard-section-header">
+
+            <div>
+                <span class="dashboard-section-kicker">
+                    CURRENT WORKLOAD
+                </span>
+
+                <h2 id="summary-heading">
+                    Case Summary
+                </h2>
+
+                <p>
+                    Current investigation workload at a glance.
+                </p>
+            </div>
+
+        </header>
+
+
+        <div class="dashboard-summary-grid">
+
+
+            <!-- ACTIVE CASES -->
+
+            <article
+                class="dashboard-summary-card dashboard-summary-card-primary"
+                data-dashboard-stat="active-cases"
+            >
+
+                <div class="dashboard-summary-top">
+
+                    <div class="dashboard-summary-icon">
+                        ▣
+                    </div>
+
+                    <span class="dashboard-summary-label">
+                        ACTIVE CASES
+                    </span>
+
+                </div>
+
+                <strong
+                    class="dashboard-summary-value"
+                    id="activeCaseCount"
+                    data-stat-value
+                >
+                    {% if active_case_count is not None %}
+                        {{ active_case_count }}
+                    {% elif open_case_count is not None %}
+                        {{ open_case_count }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </strong>
+
+                <a
+                    href="{% url 'case_list' %}"
+                    class="dashboard-summary-link"
+                >
+                    View cases
+                    <span aria-hidden="true">→</span>
+                </a>
+
+            </article>
+
+
+            <!-- EVIDENCE -->
+
+            <article
+                class="dashboard-summary-card dashboard-summary-card-info"
+                data-dashboard-stat="evidence"
+            >
+
+                <div class="dashboard-summary-top">
+
+                    <div class="dashboard-summary-icon">
+                        ◫
+                    </div>
+
+                    <span class="dashboard-summary-label">
+                        EVIDENCE ITEMS
+                    </span>
+
+                </div>
+
+                <strong
+                    class="dashboard-summary-value"
+                    id="evidenceCount"
+                    data-stat-value
+                >
+                    {% if evidence_count is not None %}
+                        {{ evidence_count }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </strong>
+
+                <a
+                    href="{% url 'evidence' %}"
+                    class="dashboard-summary-link"
+                >
+                    View evidence
+                    <span aria-hidden="true">→</span>
+                </a>
+
+            </article>
+
+
+            <!-- ENTITIES -->
+
+            <article
+                class="dashboard-summary-card dashboard-summary-card-secondary"
+                data-dashboard-stat="entities"
+            >
+
+                <div class="dashboard-summary-top">
+
+                    <div class="dashboard-summary-icon">
+                        ◉
+                    </div>
+
+                    <span class="dashboard-summary-label">
+                        PERSONS / ENTITIES
+                    </span>
+
+                </div>
+
+                <strong
+                    class="dashboard-summary-value"
+                    id="entityCount"
+                    data-stat-value
+                >
+                    {% if entity_count is not None %}
+                        {{ entity_count }}
+                    {% elif person_count is not None %}
+                        {{ person_count }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </strong>
+
+                <span class="dashboard-summary-meta">
+                    Identified entities
+                </span>
+
+            </article>
+
+
+            <!-- TIMELINE EVENTS -->
+
+            <article
+                class="dashboard-summary-card dashboard-summary-card-warning"
+                data-dashboard-stat="timeline-events"
+            >
+
+                <div class="dashboard-summary-top">
+
+                    <div class="dashboard-summary-icon">
+                        ◷
+                    </div>
+
+                    <span class="dashboard-summary-label">
+                        TIMELINE EVENTS
+                    </span>
+
+                </div>
+
+                <strong
+                    class="dashboard-summary-value"
+                    id="timelineEventCount"
+                    data-stat-value
+                >
+                    {% if timeline_event_count is not None %}
+                        {{ timeline_event_count }}
+                    {% elif event_count is not None %}
+                        {{ event_count }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </strong>
+
+                <a
+                    href="{% url 'timeline' %}"
+                    class="dashboard-summary-link"
+                >
+                    View timeline
+                    <span aria-hidden="true">→</span>
+                </a>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================================================================
+         QUICK ACTIONS
+    ================================================================= -->
+
+    <section
+        class="dashboard-section dashboard-quick-actions-section"
+        aria-labelledby="quick-actions-heading"
+    >
+
+        <header class="dashboard-section-header">
+
+            <div>
+
+                <span class="dashboard-section-kicker">
+                    INVESTIGATION TOOLS
+                </span>
+
+                <h2 id="quick-actions-heading">
+                    Quick Actions
+                </h2>
+
+                <p>
+                    Start a common investigation workflow.
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <div class="dashboard-quick-actions">
+
+
+            <a
+                href="{% url 'case_list' %}"
+                class="dashboard-action-card dashboard-action-primary"
+            >
+
+                <span class="dashboard-action-icon" aria-hidden="true">
+                    +
+                </span>
+
+                <span class="dashboard-action-content">
+
+                    <strong>
+                        New Case
+                    </strong>
+
+                    <span>
+                        Create a new investigation case.
+                    </span>
+
+                </span>
+
+                <span
+                    class="dashboard-action-arrow"
+                    aria-hidden="true"
+                >
+                    →
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'evidence' %}"
+                class="dashboard-action-card"
+            >
+
+                <span class="dashboard-action-icon" aria-hidden="true">
+                    ↑
+                </span>
+
+                <span class="dashboard-action-content">
+
+                    <strong>
+                        Upload Evidence
+                    </strong>
+
+                    <span>
+                        Add documents and evidence to an investigation.
+                    </span>
+
+                </span>
+
+                <span
+                    class="dashboard-action-arrow"
+                    aria-hidden="true"
+                >
+                    →
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'timeline' %}"
+                class="dashboard-action-card"
+            >
+
+                <span class="dashboard-action-icon" aria-hidden="true">
+                    ◷
+                </span>
+
+                <span class="dashboard-action-content">
+
+                    <strong>
+                        View Timeline
+                    </strong>
+
+                    <span>
+                        Review investigation events chronologically.
+                    </span>
+
+                </span>
+
+                <span
+                    class="dashboard-action-arrow"
+                    aria-hidden="true"
+                >
+                    →
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'graph' %}"
+                class="dashboard-action-card"
+            >
+
+                <span class="dashboard-action-icon" aria-hidden="true">
+                    ⌘
+                </span>
+
+                <span class="dashboard-action-content">
+
+                    <strong>
+                        Evidence Graph
+                    </strong>
+
+                    <span>
+                        Explore relationships between entities and evidence.
+                    </span>
+
+                </span>
+
+                <span
+                    class="dashboard-action-arrow"
+                    aria-hidden="true"
+                >
+                    →
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'legal_intelligence' %}"
+                class="dashboard-action-card"
+            >
+
+                <span class="dashboard-action-icon" aria-hidden="true">
+                    ⚖
+                </span>
+
+                <span class="dashboard-action-content">
+
+                    <strong>
+                        Legal Intelligence
+                    </strong>
+
+                    <span>
+                        Review relevant legal provisions and judgments.
+                    </span>
+
+                </span>
+
+                <span
+                    class="dashboard-action-arrow"
+                    aria-hidden="true"
+                >
+                    →
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'reports' %}"
+                class="dashboard-action-card"
+            >
+
+                <span class="dashboard-action-icon" aria-hidden="true">
+                    ▤
+                </span>
+
+                <span class="dashboard-action-content">
+
+                    <strong>
+                        Reports
+                    </strong>
+
+                    <span>
+                        Generate and manage investigation documents.
+                    </span>
+
+                </span>
+
+                <span
+                    class="dashboard-action-arrow"
+                    aria-hidden="true"
+                >
+                    →
+                </span>
+
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================================================================
+         TWO COLUMN AREA
+    ================================================================= -->
+
+    <div class="dashboard-two-column">
+
+
+        <!-- ============================================================
+             PENDING ACTIONS
+        ============================================================= -->
+
+        <section
+            class="dashboard-panel"
+            aria-labelledby="pending-actions-heading"
+        >
+
+            <header class="dashboard-panel-header">
+
+                <div>
+
+                    <span class="dashboard-section-kicker">
+                        ATTENTION REQUIRED
+                    </span>
+
+                    <h2 id="pending-actions-heading">
+                        Pending Actions
+                    </h2>
+
+                    <p>
+                        Tasks requiring investigator attention.
+                    </p>
+
+                </div>
+
+            </header>
+
+
+            <div
+                class="dashboard-panel-body"
+                data-pending-actions
+            >
+
+                {% if pending_actions %}
+
+                    <ul class="dashboard-action-list">
+
+                        {% for action in pending_actions %}
+
+                            <li class="dashboard-action-list-item">
+
+                                <span
+                                    class="dashboard-list-indicator"
+                                    aria-hidden="true"
+                                >
+                                    !
+                                </span>
+
+                                <div class="dashboard-list-content">
+
+                                    <strong>
+                                        {{ action.title }}
+                                    </strong>
+
+                                    {% if action.description %}
+                                        <p>
+                                            {{ action.description }}
+                                        </p>
+                                    {% endif %}
+
+                                    {% if action.case %}
+                                        <span class="dashboard-list-meta">
+                                            Case: {{ action.case }}
+                                        </span>
+                                    {% endif %}
+
+                                </div>
+
+                                {% if action.url %}
+
+                                    <a
+                                        href="{{ action.url }}"
+                                        class="button button-secondary button-small"
+                                    >
+                                        Review
+                                    </a>
+
+                                {% endif %}
+
+                            </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                {% else %}
+
+                    <div class="dashboard-empty">
+
+                        <div
+                            class="dashboard-empty-icon dashboard-empty-icon-success"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </div>
+
+                        <h3>
+                            No pending actions
+                        </h3>
+
+                        <p>
+                            There are currently no investigation actions
+                            requiring attention.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ============================================================
+             RECENT EVIDENCE
+        ============================================================= -->
+
+        <section
+            class="dashboard-panel"
+            aria-labelledby="recent-evidence-heading"
+        >
+
+            <header class="dashboard-panel-header">
+
+                <div>
+
+                    <span class="dashboard-section-kicker">
+                        LATEST ACTIVITY
+                    </span>
+
+                    <h2 id="recent-evidence-heading">
+                        Recent Evidence
+                    </h2>
+
+                    <p>
+                        Latest evidence added to investigations.
+                    </p>
+
+                </div>
+
+                <a
+                    href="{% url 'evidence' %}"
+                    class="dashboard-panel-link"
+                >
+                    View all
+                </a>
+
+            </header>
+
+
+            <div
+                class="dashboard-panel-body"
+                data-recent-evidence
+            >
+
+                {% if recent_evidence %}
+
+                    <ul class="dashboard-evidence-list">
+
+                        {% for evidence in recent_evidence %}
+
+                            <li class="dashboard-evidence-item">
+
+                                <div
+                                    class="dashboard-evidence-icon"
+                                    aria-hidden="true"
+                                >
+                                    ◫
+                                </div>
+
+                                <div class="dashboard-evidence-content">
+
+                                    <strong>
+
+                                        {% if evidence.name %}
+                                            {{ evidence.name }}
+
+                                        {% elif evidence.title %}
+                                            {{ evidence.title }}
+
+                                        {% else %}
+                                            Evidence item
+                                        {% endif %}
+
+                                    </strong>
+
+                                    {% if evidence.case %}
+                                        <span>
+                                            Case: {{ evidence.case }}
+                                        </span>
+                                    {% endif %}
+
+                                    {% if evidence.created_at %}
+                                        <time
+                                            datetime="{{ evidence.created_at|date:'c' }}"
+                                        >
+                                            {{ evidence.created_at }}
+                                        </time>
+                                    {% endif %}
+
+                                </div>
+
+                            </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                {% else %}
+
+                    <div class="dashboard-empty">
+
+                        <div
+                            class="dashboard-empty-icon"
+                            aria-hidden="true"
+                        >
+                            ◫
+                        </div>
+
+                        <h3>
+                            No recent evidence
+                        </h3>
+
+                        <p>
+                            Evidence added to the system will appear here.
+                        </p>
+
+                        <a
+                            href="{% url 'evidence' %}"
+                            class="button button-secondary button-small"
+                        >
+                            Upload Evidence
+                        </a>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+    <!-- ================================================================
+         RECENT CASES
+    ================================================================= -->
+
+    <section
+        class="dashboard-panel dashboard-recent-cases"
+        aria-labelledby="recent-cases-heading"
+    >
+
+        <header class="dashboard-panel-header">
+
+            <div>
+
+                <span class="dashboard-section-kicker">
+                    CASE ACTIVITY
+                </span>
+
+                <h2 id="recent-cases-heading">
+                    Recent Cases
+                </h2>
+
+                <p>
+                    Recently created or updated investigation cases.
+                </p>
+
+            </div>
+
+            <a
+                href="{% url 'case_list' %}"
+                class="dashboard-panel-link"
+            >
+                View all cases
+            </a>
+
+        </header>
+
+
+        <div
+            class="dashboard-table-wrapper"
+            data-recent-cases
+        >
+
+            {% if recent_cases %}
+
+                <table class="dashboard-table">
+
+                    <caption class="sr-only">
+                        Recent investigation cases
+                    </caption>
+
+                    <thead>
+
+                        <tr>
+
+                            <th scope="col">
+                                Case
+                            </th>
+
+                            <th scope="col">
+                                Status
+                            </th>
+
+                            <th scope="col">
+                                Priority
+                            </th>
+
+                            <th scope="col">
+                                Last Updated
+                            </th>
+
+                            <th scope="col">
+                                <span class="sr-only">
+                                    Actions
+                                </span>
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody data-recent-cases-body>
+
+                        {% for case in recent_cases %}
+
+                            <tr>
+
+                                <th scope="row">
+
+                                    {% if case.url %}
+
+                                        <a
+                                            href="{{ case.url }}"
+                                            class="dashboard-case-link"
+                                        >
+
+                                            {% if case.name %}
+                                                {{ case.name }}
+
+                                            {% elif case.title %}
+                                                {{ case.title }}
+
+                                            {% elif case.case_number %}
+                                                {{ case.case_number }}
+
+                                            {% else %}
+                                                Case
+                                            {% endif %}
+
+                                        </a>
+
+                                    {% else %}
+
+                                        <span class="dashboard-case-link-text">
+
+                                            {% if case.name %}
+                                                {{ case.name }}
+
+                                            {% elif case.title %}
+                                                {{ case.title }}
+
+                                            {% elif case.case_number %}
+                                                {{ case.case_number }}
+
+                                            {% else %}
+                                                Case
+                                            {% endif %}
+
+                                        </span>
+
+                                    {% endif %}
+
+
+                                    {% if case.case_number and case.name %}
+
+                                        <span class="dashboard-case-number">
+                                            {{ case.case_number }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </th>
+
+
+                                <td>
+
+                                    {% if case.status %}
+
+                                        <span class="dashboard-status-badge">
+                                            {{ case.status }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="dashboard-unavailable">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if case.priority %}
+
+                                        <span class="dashboard-priority-badge">
+                                            {{ case.priority }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="dashboard-unavailable">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if case.updated_at %}
+
+                                        <time
+                                            datetime="{{ case.updated_at|date:'c' }}"
+                                            class="dashboard-date"
+                                        >
+                                            {{ case.updated_at }}
+                                        </time>
+
+                                    {% elif case.created_at %}
+
+                                        <time
+                                            datetime="{{ case.created_at|date:'c' }}"
+                                            class="dashboard-date"
+                                        >
+                                            {{ case.created_at }}
+                                        </time>
+
+                                    {% else %}
+
+                                        <span class="dashboard-unavailable">
+                                            —
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td class="dashboard-table-action">
+
+                                    {% if case.url %}
+
+                                        <a
+                                            href="{{ case.url }}"
+                                            class="button button-secondary button-small"
+                                        >
+                                            Open
+                                        </a>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+
+                <!-- MOBILE CASE CARDS -->
+
+                <div
+                    class="dashboard-case-cards"
+                    data-recent-cases-mobile
+                >
+
+                    {% for case in recent_cases %}
+
+                        <article class="dashboard-case-card">
+
+                            <div class="dashboard-case-card-header">
+
+                                <div>
+
+                                    {% if case.url %}
+
+                                        <a
+                                            href="{{ case.url }}"
+                                            class="dashboard-case-card-title"
+                                        >
+
+                                            {% if case.name %}
+                                                {{ case.name }}
+
+                                            {% elif case.title %}
+                                                {{ case.title }}
+
+                                            {% elif case.case_number %}
+                                                {{ case.case_number }}
+
+                                            {% else %}
+                                                Case
+                                            {% endif %}
+
+                                        </a>
+
+                                    {% else %}
+
+                                        <strong class="dashboard-case-card-title">
+                                            {% if case.name %}
+                                                {{ case.name }}
+                                            {% elif case.title %}
+                                                {{ case.title }}
+                                            {% elif case.case_number %}
+                                                {{ case.case_number }}
+                                            {% else %}
+                                                Case
+                                            {% endif %}
+                                        </strong>
+
+                                    {% endif %}
+
+                                    {% if case.case_number %}
+
+                                        <span class="dashboard-case-number">
+                                            {{ case.case_number }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="dashboard-case-card-meta">
+
+                                <div>
+
+                                    <span>
+                                        Status
+                                    </span>
+
+                                    <strong>
+                                        {% if case.status %}
+                                            {{ case.status }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        Priority
+                                    </span>
+
+                                    <strong>
+                                        {% if case.priority %}
+                                            {{ case.priority }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        Updated
+                                    </span>
+
+                                    <strong>
+                                        {% if case.updated_at %}
+                                            {{ case.updated_at }}
+                                        {% elif case.created_at %}
+                                            {{ case.created_at }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            {% if case.url %}
+
+                                <div class="dashboard-case-card-actions">
+
+                                    <a
+                                        href="{{ case.url }}"
+                                        class="button button-secondary button-small"
+                                    >
+                                        Open Case
+                                    </a>
+
+                                </div>
+
+                            {% endif %}
+
+                        </article>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="dashboard-empty dashboard-empty-large">
+
+                    <div
+                        class="dashboard-empty-icon"
+                        aria-hidden="true"
+                    >
+                        ▣
+                    </div>
+
+                    <h3>
+                        No cases available
+                    </h3>
+
+                    <p>
+                        There are no investigation cases to display yet.
+                        Create a new case to begin an investigation.
+                    </p>
+
+                    <a
+                        href="{% url 'case_list' %}"
+                        class="button button-primary"
+                    >
+                        New Case
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+    <script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

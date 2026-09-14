@@ -1,0 +1,761 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="IO Assistant - AI-powered Investigation Officer Assistant"
+    >
+
+    <meta
+        name="theme-color"
+        content="#172b43"
+    >
+
+    <title>
+        {% block title %}IO Assistant{% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/base.css' %}"
+    >
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+
+<body>
+
+    <div class="app-shell">
+
+        <!-- ============================================================
+             SIDEBAR
+        ============================================================= -->
+
+        <aside
+            class="app-sidebar"
+            id="sidebar"
+            aria-label="Primary navigation"
+        >
+
+            <!-- BRAND -->
+
+            <div class="sidebar-brand">
+
+                <a
+                    href="{% url 'dashboard' %}"
+                    class="sidebar-brand-link"
+                    aria-label="IO Assistant Home"
+                >
+
+                    <span
+                        class="sidebar-brand-logo"
+                        aria-hidden="true"
+                    >
+                        IO
+                    </span>
+
+                    <span class="sidebar-brand-text">
+
+                        <strong class="sidebar-brand-title">
+                            IO Assistant
+                        </strong>
+
+                        <span class="sidebar-brand-subtitle">
+                            Investigation Intelligence
+                        </span>
+
+                    </span>
+
+                </a>
+
+
+                <button
+                    type="button"
+                    class="sidebar-close"
+                    id="sidebarClose"
+                    aria-label="Close navigation"
+                    aria-controls="sidebar"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <!-- NAVIGATION -->
+
+            <nav class="sidebar-nav">
+
+                <p class="sidebar-nav-section">
+                    Investigation Workspace
+                </p>
+
+
+                <ul class="sidebar-nav-list">
+
+                    <li class="sidebar-nav-item">
+
+                        <a
+                            href="{% url 'dashboard' %}"
+                            class="sidebar-nav-link {% block nav_dashboard %}{% endblock %}"
+                            {% block nav_dashboard_current %}{% endblock %}
+                        >
+
+                            <span
+                                class="sidebar-nav-icon"
+                                aria-hidden="true"
+                            >
+                                ⌂
+                            </span>
+
+                            <span class="sidebar-nav-text">
+                                Dashboard
+                            </span>
+
+                        </a>
+
+                    </li>
+
+
+                    <li class="sidebar-nav-item">
+
+                        <a
+                            href="{% url 'case_list' %}"
+                            class="sidebar-nav-link {% block nav_cases %}{% endblock %}"
+                        >
+
+                            <span
+                                class="sidebar-nav-icon"
+                                aria-hidden="true"
+                            >
+                                ▣
+                            </span>
+
+                            <span class="sidebar-nav-text">
+                                Cases
+                            </span>
+
+                        </a>
+
+                    </li>
+
+
+                    <li class="sidebar-nav-item">
+
+                        <a
+                            href="{% url 'evidence' %}"
+                            class="sidebar-nav-link {% block nav_evidence %}{% endblock %}"
+                        >
+
+                            <span
+                                class="sidebar-nav-icon"
+                                aria-hidden="true"
+                            >
+                                ◫
+                            </span>
+
+                            <span class="sidebar-nav-text">
+                                Evidence
+                            </span>
+
+                        </a>
+
+                    </li>
+
+
+                    <li class="sidebar-nav-item">
+
+                        <a
+                            href="{% url 'timeline' %}"
+                            class="sidebar-nav-link {% block nav_timeline %}{% endblock %}"
+                        >
+
+                            <span
+                                class="sidebar-nav-icon"
+                                aria-hidden="true"
+                            >
+                                ◷
+                            </span>
+
+                            <span class="sidebar-nav-text">
+                                Timeline
+                            </span>
+
+                        </a>
+
+                    </li>
+
+
+                    <li class="sidebar-nav-item">
+
+                        <a
+                            href="{% url 'graph' %}"
+                            class="sidebar-nav-link {% block nav_graph %}{% endblock %}"
+                        >
+
+                            <span
+                                class="sidebar-nav-icon"
+                                aria-hidden="true"
+                            >
+                                ⌘
+                            </span>
+
+                            <span class="sidebar-nav-text">
+                                Evidence Graph
+                            </span>
+
+                        </a>
+
+                    </li>
+
+
+                    <li class="sidebar-nav-item">
+
+                        <a
+                            href="{% url 'legal_intelligence' %}"
+                            class="sidebar-nav-link {% block nav_legal %}{% endblock %}"
+                        >
+
+                            <span
+                                class="sidebar-nav-icon"
+                                aria-hidden="true"
+                            >
+                                ⚖
+                            </span>
+
+                            <span class="sidebar-nav-text">
+                                Legal Intelligence
+                            </span>
+
+                        </a>
+
+                    </li>
+
+
+                    <li class="sidebar-nav-item">
+
+                        <a
+                            href="{% url 'reports' %}"
+                            class="sidebar-nav-link {% block nav_reports %}{% endblock %}"
+                        >
+
+                            <span
+                                class="sidebar-nav-icon"
+                                aria-hidden="true"
+                            >
+                                ▤
+                            </span>
+
+                            <span class="sidebar-nav-text">
+                                Reports
+                            </span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+
+            <!-- SIDEBAR FOOTER -->
+
+            <div class="sidebar-footer">
+
+                <div class="sidebar-user">
+
+                    <span
+                        class="sidebar-user-avatar"
+                        aria-hidden="true"
+                    >
+                        {% if user.is_authenticated %}
+                            {{ user.username|first|upper }}
+                        {% else %}
+                            IO
+                        {% endif %}
+                    </span>
+
+
+                    <div class="sidebar-user-info">
+
+                        <p class="sidebar-user-name">
+
+                            {% if user.is_authenticated %}
+                                {{ user.get_full_name|default:user.username }}
+                            {% else %}
+                                Officer
+                            {% endif %}
+
+                        </p>
+
+                        <p class="sidebar-user-role">
+                            Investigation Officer
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="sidebar-system-status">
+
+                    <span
+                        class="status-indicator"
+                        aria-hidden="true"
+                    ></span>
+
+                    <span>
+                        System Operational
+                    </span>
+
+                </div>
+
+
+                <small class="sidebar-copyright">
+                    &copy; {% now "Y" %} IO Assistant
+                </small>
+
+            </div>
+
+        </aside>
+
+
+        <!-- ============================================================
+             MOBILE SIDEBAR OVERLAY
+        ============================================================= -->
+
+        <div
+            class="sidebar-overlay"
+            id="sidebarOverlay"
+            aria-hidden="true"
+        ></div>
+
+
+        <!-- ============================================================
+             MAIN APPLICATION
+        ============================================================= -->
+
+        <div class="app-main">
+
+
+            <!-- ========================================================
+                 HEADER
+            ========================================================= -->
+
+            <header class="app-header">
+
+
+                <div class="header-left">
+
+                    <button
+                        type="button"
+                        class="mobile-menu-button"
+                        id="menuToggle"
+                        aria-label="Open navigation"
+                        aria-controls="sidebar"
+                        aria-expanded="false"
+                    >
+                        <span aria-hidden="true">
+                            ☰
+                        </span>
+                    </button>
+
+
+                    <div class="page-heading">
+
+                        <h1>
+                            {% block page_title %}
+                                Investigation Dashboard
+                            {% endblock %}
+                        </h1>
+
+                        <p>
+                            {% block page_subtitle %}
+                                Investigation Officer Intelligence Workspace
+                            {% endblock %}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="header-right">
+
+
+                    <!-- SEARCH -->
+
+                    <form
+                        class="header-search"
+                        method="get"
+                        action="{% block search_action %}{% url 'case_list' %}{% endblock %}"
+                        role="search"
+                    >
+
+                        <label
+                            for="globalSearch"
+                            class="visually-hidden"
+                        >
+                            Search investigations
+                        </label>
+
+                        <input
+                            type="search"
+                            id="globalSearch"
+                            name="q"
+                            class="form-control"
+                            placeholder="Search cases, evidence..."
+                            value="{{ request.GET.q|default:'' }}"
+                            autocomplete="off"
+                        >
+
+                        <button
+                            type="submit"
+                            class="btn btn-secondary btn-icon"
+                            aria-label="Search"
+                        >
+                            ⌕
+                        </button>
+
+                    </form>
+
+
+                    <!-- NOTIFICATIONS -->
+
+                    <div class="header-notifications">
+
+                        <button
+                            type="button"
+                            class="btn btn-ghost btn-icon"
+                            id="notificationButton"
+                            aria-label="Notifications"
+                            aria-controls="notificationPanel"
+                            aria-expanded="false"
+                        >
+                            ♢
+
+                            {% if notification_count %}
+
+                                <span class="notification-badge">
+                                    {{ notification_count }}
+                                </span>
+
+                            {% endif %}
+
+                        </button>
+
+
+                        <div
+                            class="notification-panel"
+                            id="notificationPanel"
+                            hidden
+                        >
+
+                            <div class="notification-panel-header">
+
+                                <h2>
+                                    Notifications
+                                </h2>
+
+                            </div>
+
+                            <div class="notification-panel-content">
+
+                                {% block notifications %}
+
+                                    <p class="empty-state-text">
+                                        No new notifications.
+                                    </p>
+
+                                {% endblock %}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- USER -->
+
+                    <div class="header-user">
+
+                        {% if user.is_authenticated %}
+
+                            <button
+                                type="button"
+                                class="user-menu-button"
+                                id="userMenuButton"
+                                aria-controls="userMenu"
+                                aria-expanded="false"
+                            >
+
+                                <span
+                                    class="user-avatar"
+                                    aria-hidden="true"
+                                >
+                                    {{ user.username|first|upper }}
+                                </span>
+
+                                <span class="user-information">
+
+                                    <span class="user-name">
+                                        {{ user.get_full_name|default:user.username }}
+                                    </span>
+
+                                    <span class="user-role">
+                                        Investigation Officer
+                                    </span>
+
+                                </span>
+
+                                <span
+                                    class="user-chevron"
+                                    aria-hidden="true"
+                                >
+                                    ▾
+                                </span>
+
+                            </button>
+
+
+                            <div
+                                class="user-dropdown"
+                                id="userMenu"
+                                hidden
+                            >
+
+                                <a
+                                    href="#"
+                                    class="user-dropdown-link"
+                                >
+                                    Profile
+                                </a>
+
+                                <a
+                                    href="#"
+                                    class="user-dropdown-link"
+                                >
+                                    Settings
+                                </a>
+
+                                <form
+                                    method="post"
+                                    action="{% url 'logout' %}"
+                                    class="logout-form"
+                                >
+
+                                    {% csrf_token %}
+
+                                    <button
+                                        type="submit"
+                                        class="user-dropdown-link logout-button"
+                                    >
+                                        Logout
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        {% else %}
+
+                            <a
+                                href="{% url 'login' %}"
+                                class="login-link"
+                            >
+
+                                <span
+                                    class="user-avatar"
+                                    aria-hidden="true"
+                                >
+                                    IO
+                                </span>
+
+                                <span class="user-information">
+
+                                    <span class="user-name">
+                                        Officer Login
+                                    </span>
+
+                                    <span class="user-role">
+                                        Secure Access
+                                    </span>
+
+                                </span>
+
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- ========================================================
+                 DJANGO MESSAGES
+            ========================================================= -->
+
+            {% if messages %}
+
+                <section
+                    class="message-container"
+                    aria-label="System messages"
+                >
+
+                    {% for message in messages %}
+
+                        <div
+                            class="alert-message{% if message.tags %} alert-{{ message.tags }}{% endif %}"
+                            role="alert"
+                        >
+
+                            <div class="alert-content">
+
+                                <span
+                                    class="alert-icon"
+                                    aria-hidden="true"
+                                >
+
+                                    {% if message.tags == "success" %}
+                                        ✓
+                                    {% elif message.tags == "error" %}
+                                        !
+                                    {% elif message.tags == "warning" %}
+                                        ⚠
+                                    {% else %}
+                                        i
+                                    {% endif %}
+
+                                </span>
+
+                                <span class="alert-text">
+                                    {{ message }}
+                                </span>
+
+                            </div>
+
+
+                            <button
+                                type="button"
+                                class="alert-close"
+                                aria-label="Dismiss message"
+                            >
+                                &times;
+                            </button>
+
+                        </div>
+
+                    {% endfor %}
+
+                </section>
+
+            {% endif %}
+
+
+            <!-- ========================================================
+                 CONTENT
+            ========================================================= -->
+
+            <div class="app-content">
+
+                {% block breadcrumb %}
+                {% endblock %}
+
+
+                <main
+                    id="mainContent"
+                    class="page-content"
+                    tabindex="-1"
+                >
+
+                    {% block content %}
+                    {% endblock %}
+
+                </main>
+
+
+                <!-- ====================================================
+                     FOOTER
+                ===================================================== -->
+
+                <footer class="main-footer">
+
+                    <div class="footer-left">
+
+                        <span>
+                            IO Assistant
+                        </span>
+
+                        <span
+                            class="footer-separator"
+                            aria-hidden="true"
+                        >
+                            •
+                        </span>
+
+                        <span>
+                            Investigation Intelligence System
+                        </span>
+
+                    </div>
+
+
+                    <div class="footer-right">
+
+                        <span>
+                            Secure Officer Workspace
+                        </span>
+
+                    </div>
+
+                </footer>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================================
+         CSRF TOKEN
+    ================================================================= -->
+
+    <div
+        class="csrf-token-container"
+        hidden
+    >
+
+        <form id="csrfTokenForm">
+            {% csrf_token %}
+        </form>
+
+    </div>
+
+
+    <!-- ================================================================
+         JAVASCRIPT
+    ================================================================= -->
+
+    <script src="{% static 'js/api.js' %}"></script>
+
+    {% block extra_js %}
+    {% endblock %}
+
+</body>
+
+</html>

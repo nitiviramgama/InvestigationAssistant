@@ -1,0 +1,969 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}Reports & Documents | IO Assistant{% endblock %}
+
+{% block page_title %}Reports & Documents{% endblock %}
+
+{% block page_subtitle %}
+    Generate, review, and manage investigation-related documents for the selected case.
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+{% endblock %}
+
+{% block search_action %}
+    <div class="page-search reports-search">
+        <label for="documentSearch" class="visually-hidden">
+            Search documents
+        </label>
+
+        <input
+            type="search"
+            id="documentSearch"
+            class="form-control"
+            placeholder="Search documents..."
+            autocomplete="off"
+        >
+    </div>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span class="breadcrumb-separator" aria-hidden="true">/</span>
+    {% if case %}
+        <a href="{% url 'case_list' %}">Cases</a>
+        <span class="breadcrumb-separator" aria-hidden="true">/</span>
+        <a href="{% url 'case_detail' case.id %}">
+            {{ case.title|default:case.case_number|default:"Case" }}
+        </a>
+        <span class="breadcrumb-separator" aria-hidden="true">/</span>
+    {% endif %}
+    <span aria-current="page">Reports & Documents</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<section
+    class="reports-page"
+    id="reportsPage"
+    data-case-id="{{ case.id|default:'' }}"
+    data-reports-endpoint="{% if case.id %}/api/case/{{ case.id }}/reports/{% endif %}"
+>
+
+    <!-- Case Header -->
+    <header class="case-header reports-case-header">
+        <div class="case-header-main">
+            <div class="case-header-label">Investigation Case</div>
+
+            <h2 class="case-title">
+                {{ case.title|default:"Investigation Case" }}
+            </h2>
+
+            {% if case.case_number %}
+                <p class="case-number">
+                    Case No. {{ case.case_number }}
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="case-header-meta">
+            {% if case.status %}
+                <span class="status-badge status-{{ case.status|lower }}">
+                    {{ case.status }}
+                </span>
+            {% endif %}
+
+            {% if case.priority %}
+                <span class="priority-badge priority-{{ case.priority|lower }}">
+                    {{ case.priority }} Priority
+                </span>
+            {% endif %}
+        </div>
+    </header>
+
+
+    <!-- Server Messages -->
+    {% if messages %}
+        <section class="messages" aria-label="Messages">
+            {% for message in messages %}
+                <div
+                    class="message message-{{ message.tags|default:'info' }}"
+                    role="alert"
+                    data-message
+                >
+                    <span class="message-text">{{ message }}</span>
+                    <button
+                        type="button"
+                        class="message-close"
+                        aria-label="Dismiss message"
+                        data-dismiss-message
+                    >
+                        &times;
+                    </button>
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+
+    <!-- Error State -->
+    {% if reports_error %}
+        <section
+            class="state-panel state-error"
+            id="reportsErrorState"
+            role="alert"
+            data-error-state
+        >
+            <div class="state-icon" aria-hidden="true">!</div>
+
+            <div class="state-content">
+                <h3>Unable to load documents</h3>
+                <p>{{ reports_error }}</p>
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="retryReportsButton"
+                    data-action="retry-reports"
+                >
+                    Try Again
+                </button>
+            </div>
+        </section>
+    {% endif %}
+
+
+    <!-- Available Document Types -->
+    <section class="reports-section document-types-section">
+        <div class="section-header">
+            <div>
+                <span class="section-eyebrow">Document Management</span>
+                <h2>Available Document Types</h2>
+                <p>
+                    Select a document type to generate or review the required
+                    investigation document.
+                </p>
+            </div>
+
+            <div class="section-actions">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="refreshDocumentsButton"
+                    data-action="refresh-documents"
+                >
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Loading State -->
+        <div
+            class="state-panel state-loading"
+            id="documentsLoadingState"
+            hidden
+            aria-live="polite"
+            data-loading-state
+        >
+            <div class="loading-spinner" aria-hidden="true"></div>
+            <div>
+                <h3>Loading documents...</h3>
+                <p>Please wait while document information is retrieved.</p>
+            </div>
+        </div>
+
+
+        <!-- Document Cards -->
+        <div
+            class="document-grid"
+            id="documentTypesGrid"
+            data-document-list
+        >
+
+            <!-- Purvani Chargesheet -->
+            <article
+                class="document-card"
+                data-document-card
+                data-document-type="purvani-chargesheet"
+            >
+                <div class="document-card-header">
+                    <div class="document-icon" aria-hidden="true">
+                        <span>PC</span>
+                    </div>
+
+                    <div class="document-card-title">
+                        <h3>Purvani Chargesheet</h3>
+                        <span class="document-category">
+                            Chargesheet / Investigation
+                        </span>
+                    </div>
+                </div>
+
+                <p class="document-description">
+                    Supplementary chargesheet document containing relevant
+                    investigation findings, accused details, evidence, and
+                    applicable legal provisions.
+                </p>
+
+                <div class="document-card-meta">
+                    <span class="document-status status-not-generated" data-document-status>
+                        Not Generated
+                    </span>
+                </div>
+
+                <div class="document-card-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary generate-document-button"
+                        id="generatePurvaniChargesheetButton"
+                        data-action="generate-document"
+                        data-document-type="purvani-chargesheet"
+                    >
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-document-button"
+                        id="viewPurvaniChargesheetButton"
+                        data-action="view-document"
+                        data-document-type="purvani-chargesheet"
+                        disabled
+                    >
+                        View / Download
+                    </button>
+                </div>
+            </article>
+
+
+            <!-- Medical Treatment Letter -->
+            <article
+                class="document-card"
+                data-document-card
+                data-document-type="medical-treatment-letter"
+            >
+                <div class="document-card-header">
+                    <div class="document-icon" aria-hidden="true">
+                        <span>MT</span>
+                    </div>
+
+                    <div class="document-card-title">
+                        <h3>Medical Treatment Letter</h3>
+                        <span class="document-category">
+                            Medical / Investigation
+                        </span>
+                    </div>
+                </div>
+
+                <p class="document-description">
+                    Official letter for requesting or documenting medical
+                    examination, treatment, records, or related medical
+                    information.
+                </p>
+
+                <div class="document-card-meta">
+                    <span class="document-status status-not-generated" data-document-status>
+                        Not Generated
+                    </span>
+                </div>
+
+                <div class="document-card-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary generate-document-button"
+                        id="generateMedicalTreatmentLetterButton"
+                        data-action="generate-document"
+                        data-document-type="medical-treatment-letter"
+                    >
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-document-button"
+                        id="viewMedicalTreatmentLetterButton"
+                        data-action="view-document"
+                        data-document-type="medical-treatment-letter"
+                        disabled
+                    >
+                        View / Download
+                    </button>
+                </div>
+            </article>
+
+
+            <!-- Police Custody Remand Request -->
+            <article
+                class="document-card"
+                data-document-card
+                data-document-type="police-custody-remand-request"
+            >
+                <div class="document-card-header">
+                    <div class="document-icon" aria-hidden="true">
+                        <span>CR</span>
+                    </div>
+
+                    <div class="document-card-title">
+                        <h3>Police Custody Remand Request</h3>
+                        <span class="document-category">
+                            Custody / Court
+                        </span>
+                    </div>
+                </div>
+
+                <p class="document-description">
+                    Request document supporting police custody remand with
+                    investigation grounds, relevant facts, and case details.
+                </p>
+
+                <div class="document-card-meta">
+                    <span class="document-status status-not-generated" data-document-status>
+                        Not Generated
+                    </span>
+                </div>
+
+                <div class="document-card-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary generate-document-button"
+                        id="generatePoliceCustodyRemandButton"
+                        data-action="generate-document"
+                        data-document-type="police-custody-remand-request"
+                    >
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-document-button"
+                        id="viewPoliceCustodyRemandButton"
+                        data-action="view-document"
+                        data-document-type="police-custody-remand-request"
+                        disabled
+                    >
+                        View / Download
+                    </button>
+                </div>
+            </article>
+
+
+            <!-- Seizure Receipt -->
+            <article
+                class="document-card"
+                data-document-card
+                data-document-type="seizure-receipt"
+            >
+                <div class="document-card-header">
+                    <div class="document-icon" aria-hidden="true">
+                        <span>SR</span>
+                    </div>
+
+                    <div class="document-card-title">
+                        <h3>Seizure Receipt</h3>
+                        <span class="document-category">
+                            Evidence / Seizure
+                        </span>
+                    </div>
+                </div>
+
+                <p class="document-description">
+                    Receipt documenting seized property, evidence details,
+                    seizure information, and associated case references.
+                </p>
+
+                <div class="document-card-meta">
+                    <span class="document-status status-not-generated" data-document-status>
+                        Not Generated
+                    </span>
+                </div>
+
+                <div class="document-card-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary generate-document-button"
+                        id="generateSeizureReceiptButton"
+                        data-action="generate-document"
+                        data-document-type="seizure-receipt"
+                    >
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-document-button"
+                        id="viewSeizureReceiptButton"
+                        data-action="view-document"
+                        data-document-type="seizure-receipt"
+                        disabled
+                    >
+                        View / Download
+                    </button>
+                </div>
+            </article>
+
+
+            <!-- Court Custody Letter -->
+            <article
+                class="document-card"
+                data-document-card
+                data-document-type="court-custody-letter"
+            >
+                <div class="document-card-header">
+                    <div class="document-icon" aria-hidden="true">
+                        <span>CC</span>
+                    </div>
+
+                    <div class="document-card-title">
+                        <h3>Court Custody Letter</h3>
+                        <span class="document-category">
+                            Court / Custody
+                        </span>
+                    </div>
+                </div>
+
+                <p class="document-description">
+                    Formal communication relating to court custody status,
+                    custody proceedings, and relevant investigation details.
+                </p>
+
+                <div class="document-card-meta">
+                    <span class="document-status status-not-generated" data-document-status>
+                        Not Generated
+                    </span>
+                </div>
+
+                <div class="document-card-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary generate-document-button"
+                        id="generateCourtCustodyLetterButton"
+                        data-action="generate-document"
+                        data-document-type="court-custody-letter"
+                    >
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-document-button"
+                        id="viewCourtCustodyLetterButton"
+                        data-action="view-document"
+                        data-document-type="court-custody-letter"
+                        disabled
+                    >
+                        View / Download
+                    </button>
+                </div>
+            </article>
+
+
+            <!-- Accused Panchanama -->
+            <article
+                class="document-card"
+                data-document-card
+                data-document-type="accused-panchanama"
+            >
+                <div class="document-card-header">
+                    <div class="document-icon" aria-hidden="true">
+                        <span>AP</span>
+                    </div>
+
+                    <div class="document-card-title">
+                        <h3>Accused Panchanama</h3>
+                        <span class="document-category">
+                            Accused / Procedure
+                        </span>
+                    </div>
+                </div>
+
+                <p class="document-description">
+                    Structured document for recording relevant accused-related
+                    procedural details and associated investigation information.
+                </p>
+
+                <div class="document-card-meta">
+                    <span class="document-status status-not-generated" data-document-status>
+                        Not Generated
+                    </span>
+                </div>
+
+                <div class="document-card-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary generate-document-button"
+                        id="generateAccusedPanchanamaButton"
+                        data-action="generate-document"
+                        data-document-type="accused-panchanama"
+                    >
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-document-button"
+                        id="viewAccusedPanchanamaButton"
+                        data-action="view-document"
+                        data-document-type="accused-panchanama"
+                        disabled
+                    >
+                        View / Download
+                    </button>
+                </div>
+            </article>
+
+
+            <!-- Accused Face Identification Form -->
+            <article
+                class="document-card"
+                data-document-card
+                data-document-type="accused-face-identification"
+            >
+                <div class="document-card-header">
+                    <div class="document-icon" aria-hidden="true">
+                        <span>FI</span>
+                    </div>
+
+                    <div class="document-card-title">
+                        <h3>Accused Face Identification Form</h3>
+                        <span class="document-category">
+                            Identification / Evidence
+                        </span>
+                    </div>
+                </div>
+
+                <p class="document-description">
+                    Identification form for recording accused identification
+                    details and references to supporting visual evidence.
+                </p>
+
+                <div class="document-card-meta">
+                    <span class="document-status status-not-generated" data-document-status>
+                        Not Generated
+                    </span>
+                </div>
+
+                <div class="document-card-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary generate-document-button"
+                        id="generateAccusedFaceIdentificationButton"
+                        data-action="generate-document"
+                        data-document-type="accused-face-identification"
+                    >
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-document-button"
+                        id="viewAccusedFaceIdentificationButton"
+                        data-action="view-document"
+                        data-document-type="accused-face-identification"
+                        disabled
+                    >
+                        View / Download
+                    </button>
+                </div>
+            </article>
+
+        </div>
+
+
+        <!-- Empty State -->
+        <div
+            class="state-panel state-empty"
+            id="documentsEmptyState"
+            hidden
+            data-empty-state
+        >
+            <div class="state-icon" aria-hidden="true">DOC</div>
+
+            <div class="state-content">
+                <h3>No documents available</h3>
+                <p>
+                    There are currently no document types available for this
+                    case.
+                </p>
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- Officer Review Area -->
+    <section class="reports-section officer-review-section">
+        <div class="section-header">
+            <div>
+                <span class="section-eyebrow">Human Verification</span>
+                <h2>Officer Review</h2>
+                <p>
+                    Review generated documents before they are finalized or
+                    used in official proceedings.
+                </p>
+            </div>
+        </div>
+
+        <div class="review-panel" id="officerReviewPanel">
+
+            <div class="review-status">
+                <span class="review-status-label">Review Status</span>
+
+                <span
+                    class="review-status-badge review-pending"
+                    id="reviewStatusBadge"
+                    data-review-status
+                >
+                    Pending Review
+                </span>
+            </div>
+
+            <div class="review-document-info">
+                <div class="review-field">
+                    <span class="review-field-label">Selected Document</span>
+                    <strong
+                        id="selectedReviewDocument"
+                        data-selected-document
+                    >
+                        No document selected
+                    </strong>
+                </div>
+
+                <div class="review-field">
+                    <span class="review-field-label">Generated On</span>
+                    <span id="selectedReviewDate" data-selected-date>
+                        —
+                    </span>
+                </div>
+
+                <div class="review-field">
+                    <span class="review-field-label">Generated By</span>
+                    <span id="selectedReviewUser" data-selected-user>
+                        —
+                    </span>
+                </div>
+            </div>
+
+            <div class="review-warning">
+                <strong>Officer verification required.</strong>
+                <p>
+                    AI-generated content must be checked against the case
+                    record, evidence, applicable law, and official source
+                    documents before approval.
+                </p>
+            </div>
+
+            <div class="review-notes">
+                <label for="reviewNotes">
+                    Officer Review Notes
+                </label>
+
+                <textarea
+                    id="reviewNotes"
+                    name="review_notes"
+                    class="form-control"
+                    rows="4"
+                    placeholder="Enter verification notes, corrections, or observations..."
+                    data-review-notes
+                ></textarea>
+            </div>
+
+            <div class="review-actions">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="openReviewDocumentButton"
+                    data-action="open-review-document"
+                    disabled
+                >
+                    Open Document
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="requestDocumentRevisionButton"
+                    data-action="request-document-revision"
+                    disabled
+                >
+                    Request Revision
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="markDocumentReviewedButton"
+                    data-action="mark-document-reviewed"
+                    disabled
+                >
+                    Mark as Reviewed
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- Generated Document History -->
+    <section class="reports-section document-history-section">
+        <div class="section-header">
+            <div>
+                <span class="section-eyebrow">Audit Trail</span>
+                <h2>Generated Document History</h2>
+                <p>
+                    Track previously generated documents and their review
+                    status.
+                </p>
+            </div>
+
+            <div class="section-actions">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="refreshDocumentHistoryButton"
+                    data-action="refresh-history"
+                >
+                    Refresh History
+                </button>
+            </div>
+        </div>
+
+
+        <div class="history-table-wrapper">
+            <table
+                class="history-table"
+                id="generatedDocumentsTable"
+                data-history-table
+            >
+                <thead>
+                    <tr>
+                        <th scope="col">Document</th>
+                        <th scope="col">Generated On</th>
+                        <th scope="col">Generated By</th>
+                        <th scope="col">Version</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="generatedDocumentsTableBody">
+                    {% for document in generated_documents %}
+                        <tr
+                            data-history-row
+                            data-document-id="{{ document.id }}"
+                            data-document-type="{{ document.document_type }}"
+                        >
+                            <td>
+                                <div class="history-document-name">
+                                    <strong>
+                                        {{ document.title|default:document.document_type }}
+                                    </strong>
+
+                                    {% if document.case_reference %}
+                                        <span>
+                                            {{ document.case_reference }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <td>
+                                {{ document.created_at|date:"d M Y, H:i"|default:"—" }}
+                            </td>
+
+                            <td>
+                                {{ document.created_by|default:"—" }}
+                            </td>
+
+                            <td>
+                                {{ document.version|default:"1" }}
+                            </td>
+
+                            <td>
+                                <span
+                                    class="history-status status-{{ document.status|default:'pending'|lower }}"
+                                >
+                                    {{ document.status|default:"Pending Review" }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="history-actions">
+                                    <button
+                                        type="button"
+                                        class="btn btn-small btn-secondary"
+                                        data-action="view-history-document"
+                                        data-document-id="{{ document.id }}"
+                                    >
+                                        View
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-small btn-secondary"
+                                        data-action="download-history-document"
+                                        data-document-id="{{ document.id }}"
+                                    >
+                                        Download
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr id="documentHistoryEmptyRow">
+                            <td colspan="6">
+                                <div class="table-empty-state">
+                                    <h3>No generated documents</h3>
+                                    <p>
+                                        Generated documents will appear here
+                                        once they are created.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+        <!-- Mobile History Cards -->
+        <div
+            class="history-card-list"
+            id="generatedDocumentsCardList"
+            data-history-cards
+        >
+            {% for document in generated_documents %}
+                <article
+                    class="history-card"
+                    data-history-card
+                    data-document-id="{{ document.id }}"
+                >
+                    <div class="history-card-header">
+                        <div>
+                            <h3>
+                                {{ document.title|default:document.document_type }}
+                            </h3>
+
+                            {% if document.case_reference %}
+                                <span>{{ document.case_reference }}</span>
+                            {% endif %}
+                        </div>
+
+                        <span
+                            class="history-status status-{{ document.status|default:'pending'|lower }}"
+                        >
+                            {{ document.status|default:"Pending Review" }}
+                        </span>
+                    </div>
+
+                    <dl class="history-card-details">
+                        <div>
+                            <dt>Generated On</dt>
+                            <dd>
+                                {{ document.created_at|date:"d M Y, H:i"|default:"—" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt>Generated By</dt>
+                            <dd>{{ document.created_by|default:"—" }}</dd>
+                        </div>
+
+                        <div>
+                            <dt>Version</dt>
+                            <dd>{{ document.version|default:"1" }}</dd>
+                        </div>
+                    </dl>
+
+                    <div class="history-card-actions">
+                        <button
+                            type="button"
+                            class="btn btn-small btn-secondary"
+                            data-action="view-history-document"
+                            data-document-id="{{ document.id }}"
+                        >
+                            View
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-small btn-secondary"
+                            data-action="download-history-document"
+                            data-document-id="{{ document.id }}"
+                        >
+                            Download
+                        </button>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="table-empty-state">
+                    <h3>No generated documents</h3>
+                    <p>
+                        Generated documents will appear here once they are
+                        created.
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+
+
+        <!-- History Empty State -->
+        <div
+            class="state-panel state-empty history-empty-state"
+            id="historyEmptyState"
+            hidden
+            data-history-empty
+        >
+            <div class="state-icon" aria-hidden="true">DOC</div>
+
+            <div class="state-content">
+                <h3>No generated document history</h3>
+                <p>
+                    There are no previously generated documents for this case.
+                </p>
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- General Error State -->
+    <div
+        class="state-panel state-error"
+        id="documentActionError"
+        hidden
+        role="alert"
+        data-action-error
+    >
+        <div class="state-icon" aria-hidden="true">!</div>
+
+        <div class="state-content">
+            <h3>Document action failed</h3>
+            <p id="documentActionErrorMessage" data-error-message>
+                An unexpected error occurred. Please try again.
+            </p>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="dismissDocumentErrorButton"
+                data-action="dismiss-error"
+            >
+                Dismiss
+            </button>
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="{% static 'js/reports.js' %}" defer></script>
+{% endblock %}

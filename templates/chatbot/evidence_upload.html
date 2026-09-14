@@ -1,0 +1,1076 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}Upload Evidence | IO Assistant{% endblock %}
+
+{% block page_title %}Upload Evidence{% endblock %}
+
+{% block page_subtitle %}
+    Add and preserve evidence for an investigation case
+{% endblock %}
+
+{% block nav_evidence %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/evidence.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<section
+    class="evidence-page"
+    data-evidence-upload-page
+    {% if case.id %}
+        data-upload-endpoint="/api/cases/{{ case.id }}/evidence/upload/"
+        data-evidence-endpoint="/api/cases/{{ case.id }}/evidence/upload/"
+        data-case-id="{{ case.id }}"
+    {% endif %}
+    aria-labelledby="evidence-upload-heading"
+>
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+
+    <header class="evidence-header">
+
+        <div class="evidence-header-main">
+
+            <nav
+                class="breadcrumb"
+                aria-label="Breadcrumb"
+            >
+
+                <a href="{% url 'case_list' %}">
+                    Cases
+                </a>
+
+                <span aria-hidden="true">
+                    /
+                </span>
+
+                {% if case.id %}
+
+                    <a href="{% url 'case_detail' case.id %}">
+                        {{ case.case_number|default:"Case" }}
+                    </a>
+
+                    <span aria-hidden="true">
+                        /
+                    </span>
+
+                {% endif %}
+
+                <span aria-current="page">
+                    Upload Evidence
+                </span>
+
+            </nav>
+
+
+            <h1 id="evidence-upload-heading">
+                Upload Evidence
+            </h1>
+
+            <p>
+                Add a new evidence file and preserve its source and
+                supporting information for this investigation.
+            </p>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================================================
+         MESSAGES
+    ========================================================== -->
+
+    {% if messages %}
+
+        <section
+            class="evidence-messages"
+            aria-label="Messages"
+            aria-live="polite"
+        >
+
+            {% for message in messages %}
+
+                <div
+                    class="evidence-message
+                    {% if message.tags %}
+                        evidence-message-{{ message.tags }}
+                    {% endif %}"
+                    role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                >
+
+                    <span
+                        class="evidence-message-icon"
+                        aria-hidden="true"
+                    >
+                        {% if message.tags == "success" %}
+                            ✓
+                        {% elif message.tags == "error" %}
+                            !
+                        {% elif message.tags == "warning" %}
+                            ⚠
+                        {% else %}
+                            i
+                        {% endif %}
+                    </span>
+
+                    <span class="evidence-message-text">
+                        {{ message }}
+                    </span>
+
+                </div>
+
+            {% endfor %}
+
+        </section>
+
+    {% endif %}
+
+
+    {% if upload_error %}
+
+        <section
+            class="evidence-error-state"
+            data-upload-error
+            role="alert"
+            aria-live="assertive"
+        >
+
+            <div class="evidence-error-content">
+
+                <span
+                    class="evidence-error-icon"
+                    aria-hidden="true"
+                >
+                    !
+                </span>
+
+                <div>
+
+                    <h2>
+                        Evidence upload failed
+                    </h2>
+
+                    <p data-error-message>
+                        {{ upload_error }}
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    {% endif %}
+
+
+    {% if upload_success %}
+
+        <section
+            class="evidence-success-state"
+            data-upload-success
+            role="status"
+            aria-live="polite"
+        >
+
+            <span
+                class="evidence-success-icon"
+                aria-hidden="true"
+            >
+                ✓
+            </span>
+
+            <div>
+
+                <h2>
+                    Evidence uploaded successfully
+                </h2>
+
+                {% if upload_success_message %}
+
+                    <p>
+                        {{ upload_success_message }}
+                    </p>
+
+                {% else %}
+
+                    <p>
+                        The evidence has been added to the investigation.
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+    {% endif %}
+
+
+    <!-- =========================================================
+         CASE INFORMATION
+    ========================================================== -->
+
+    {% if case.id %}
+
+        <section
+            class="evidence-case-header"
+            aria-labelledby="evidence-case-heading"
+        >
+
+            <div class="evidence-case-information">
+
+                <span class="evidence-case-label">
+                    Investigation Case
+                </span>
+
+                <h2
+                    id="evidence-case-heading"
+                    class="evidence-case-title"
+                >
+                    {{ case.title|default:"Investigation Case" }}
+                </h2>
+
+                {% if case.case_number %}
+
+                    <span class="evidence-case-number">
+                        Case Number: {{ case.case_number }}
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+
+            {% if case.status %}
+
+                <span
+                    class="case-status-badge case-status-{{ case.status|lower }}"
+                >
+
+                    <span
+                        class="status-dot"
+                        aria-hidden="true"
+                    ></span>
+
+                    {{ case.status }}
+
+                </span>
+
+            {% endif %}
+
+        </section>
+
+    {% else %}
+
+        <section
+            class="evidence-case-header"
+            aria-labelledby="evidence-case-heading"
+        >
+
+            <div class="evidence-case-information">
+
+                <span class="evidence-case-label">
+                    Investigation Case
+                </span>
+
+                <h2
+                    id="evidence-case-heading"
+                    class="evidence-case-title"
+                >
+                    Select a case before uploading evidence
+                </h2>
+
+                <span class="evidence-case-number">
+                    No case has been selected.
+                </span>
+
+            </div>
+
+        </section>
+
+    {% endif %}
+
+
+    <!-- =========================================================
+         MAIN UPLOAD LAYOUT
+    ========================================================== -->
+
+    <div class="evidence-upload-layout">
+
+        <main class="evidence-upload-main">
+
+            <!-- =================================================
+                 UPLOAD FORM
+            ================================================== -->
+
+            <form
+                method="post"
+                action=""
+                enctype="multipart/form-data"
+                class="evidence-upload-form evidence-form"
+                id="evidenceUploadForm"
+                data-file-upload
+                aria-busy="false"
+                novalidate
+            >
+
+                {% csrf_token %}
+
+
+                {% if case.id %}
+
+                    <input
+                        type="hidden"
+                        name="case_id"
+                        value="{{ case.id }}"
+                    >
+
+                {% endif %}
+
+
+                <!-- =============================================
+                     EVIDENCE INFORMATION
+                ============================================== -->
+
+                <section class="evidence-upload-card">
+
+                    <header class="evidence-upload-card-header">
+
+                        <div>
+
+                            <h2>
+                                Evidence Information
+                            </h2>
+
+                            <p>
+                                Provide the basic information needed to
+                                classify and trace this evidence.
+                            </p>
+
+                        </div>
+
+                    </header>
+
+
+                    <div class="evidence-upload-card-body">
+
+                        <div class="evidence-form-grid">
+
+
+                            <!-- Evidence Type -->
+
+                            <div class="evidence-field">
+
+                                <label for="evidenceType">
+                                    Evidence Type
+                                    <span
+                                        aria-hidden="true"
+                                        class="required"
+                                    >
+                                        *
+                                    </span>
+                                </label>
+
+
+                                {% if form.evidence_type %}
+
+                                    {{ form.evidence_type }}
+
+                                {% else %}
+
+                                    <select
+                                        id="evidenceType"
+                                        name="evidence_type"
+                                        class="form-select"
+                                        required
+                                        data-evidence-type
+                                    >
+
+                                        <option value="">
+                                            Select evidence type
+                                        </option>
+
+
+                                        {% if evidence_types %}
+
+                                            {% for value, label in evidence_types %}
+
+                                                <option
+                                                    value="{{ value }}"
+                                                    {% if request.POST.evidence_type == value %}
+                                                        selected
+                                                    {% endif %}
+                                                >
+                                                    {{ label }}
+                                                </option>
+
+                                            {% endfor %}
+
+                                        {% endif %}
+
+                                    </select>
+
+                                {% endif %}
+
+
+                                {% if form.evidence_type.help_text %}
+
+                                    <span class="evidence-field-help">
+                                        {{ form.evidence_type.help_text }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="evidence-field-help">
+                                        Select the type that best describes
+                                        the uploaded evidence.
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if form.evidence_type.errors %}
+
+                                    <div
+                                        class="evidence-field-error"
+                                        role="alert"
+                                    >
+
+                                        {% for error in form.evidence_type.errors %}
+
+                                            <span>
+                                                {{ error }}
+                                            </span>
+
+                                        {% endfor %}
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+
+                            <!-- Source Reference -->
+
+                            <div class="evidence-field">
+
+                                <label for="sourceReference">
+                                    Source / Reference
+                                </label>
+
+
+                                {% if form.source_reference %}
+
+                                    {{ form.source_reference }}
+
+                                {% else %}
+
+                                    <input
+                                        type="text"
+                                        id="sourceReference"
+                                        name="source_reference"
+                                        class="form-input"
+                                        value="{{ request.POST.source_reference|default:'' }}"
+                                        placeholder="Source, reference number, or origin"
+                                        autocomplete="off"
+                                    >
+
+                                {% endif %}
+
+
+                                <span class="evidence-field-help">
+
+                                    {% if form.source_reference.help_text %}
+
+                                        {{ form.source_reference.help_text }}
+
+                                    {% else %}
+
+                                        Record where the evidence originated
+                                        or its reference number.
+
+                                    {% endif %}
+
+                                </span>
+
+
+                                {% if form.source_reference.errors %}
+
+                                    <div
+                                        class="evidence-field-error"
+                                        role="alert"
+                                    >
+
+                                        {% for error in form.source_reference.errors %}
+
+                                            <span>
+                                                {{ error }}
+                                            </span>
+
+                                        {% endfor %}
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+
+                            <!-- Description -->
+
+                            <div class="evidence-field evidence-field-full">
+
+                                <label for="evidenceDescription">
+                                    Description / Notes
+                                </label>
+
+
+                                {% if form.description %}
+
+                                    {{ form.description }}
+
+                                {% else %}
+
+                                    <textarea
+                                        id="evidenceDescription"
+                                        name="description"
+                                        class="form-textarea"
+                                        rows="5"
+                                        placeholder="Add relevant observations, context, or notes about this evidence..."
+                                    >{{ request.POST.description|default:'' }}</textarea>
+
+                                {% endif %}
+
+
+                                {% if form.description.help_text %}
+
+                                    <span class="evidence-field-help">
+                                        {{ form.description.help_text }}
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if form.description.errors %}
+
+                                    <div
+                                        class="evidence-field-error"
+                                        role="alert"
+                                    >
+
+                                        {% for error in form.description.errors %}
+
+                                            <span>
+                                                {{ error }}
+                                            </span>
+
+                                        {% endfor %}
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =============================================
+                     FILE UPLOAD
+                ============================================== -->
+
+                <section class="evidence-upload-card">
+
+                    <header class="evidence-upload-card-header">
+
+                        <div>
+
+                            <h2>
+                                Evidence File
+                            </h2>
+
+                            <p>
+                                Select the original evidence file you want
+                                to preserve.
+                            </p>
+
+                        </div>
+
+                    </header>
+
+
+                    <div class="evidence-upload-card-body">
+
+                        <div class="evidence-file-section">
+
+
+                            <label
+                                for="evidenceFile"
+                                class="evidence-file-label"
+                            >
+                                Evidence File
+                                <span
+                                    aria-hidden="true"
+                                    class="required"
+                                >
+                                    *
+                                </span>
+                            </label>
+
+
+                            <div
+                                class="evidence-dropzone file-upload-area"
+                                id="fileUploadArea"
+                                data-file-dropzone
+                                data-file-upload-area
+                            >
+
+                                {% if form.file %}
+
+                                    <input
+                                        type="file"
+                                        id="{{ form.file.id_for_label }}"
+                                        name="file"
+                                        class="evidence-file-input"
+                                        data-evidence-file
+                                        required
+                                    >
+
+                                {% else %}
+
+                                    <input
+                                        type="file"
+                                        id="evidenceFile"
+                                        name="file"
+                                        class="evidence-file-input"
+                                        data-evidence-file
+                                        required
+                                        aria-describedby="fileGuidance fileSelection"
+                                    >
+
+                                {% endif %}
+
+
+                                <div class="evidence-upload-content">
+
+                                    <div
+                                        class="evidence-upload-icon"
+                                        aria-hidden="true"
+                                    >
+                                        ↑
+                                    </div>
+
+                                    <strong class="evidence-upload-title">
+                                        Select an evidence file
+                                    </strong>
+
+                                    <span class="evidence-upload-description">
+                                        Choose a file from your device
+                                        or drag it here.
+                                    </span>
+
+                                    <span class="evidence-upload-browse">
+                                        Browse Files
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Selected File -->
+
+                            <div
+                                class="selected-file"
+                                id="selectedFile"
+                                data-selected-file
+                                aria-live="polite"
+                                hidden
+                            >
+
+                                <div
+                                    class="selected-file-icon"
+                                    aria-hidden="true"
+                                >
+                                    ▤
+                                </div>
+
+
+                                <div class="selected-file-information">
+
+                                    <strong
+                                        class="selected-file-name"
+                                        data-selected-file-name
+                                    >
+                                        Selected file
+                                    </strong>
+
+                                    <span
+                                        class="selected-file-size"
+                                        data-selected-file-size
+                                    ></span>
+
+                                </div>
+
+
+                                <button
+                                    type="button"
+                                    class="selected-file-remove"
+                                    data-remove-file
+                                    aria-label="Remove selected file"
+                                >
+                                    &times;
+                                </button>
+
+                            </div>
+
+
+                            <div
+                                id="fileSelection"
+                                class="evidence-field-help"
+                                aria-live="polite"
+                            >
+                                No file selected.
+                            </div>
+
+
+                            {% if form.file.help_text %}
+
+                                <span
+                                    id="fileGuidance"
+                                    class="evidence-field-help"
+                                >
+                                    {{ form.file.help_text }}
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    id="fileGuidance"
+                                    class="evidence-field-help"
+                                >
+                                    Select the original evidence file.
+                                </span>
+
+                            {% endif %}
+
+
+                            {% if form.file.errors %}
+
+                                <div
+                                    class="evidence-field-error"
+                                    role="alert"
+                                >
+
+                                    {% for error in form.file.errors %}
+
+                                        <span>
+                                            {{ error }}
+                                        </span>
+
+                                    {% endfor %}
+
+                                </div>
+
+                            {% endif %}
+
+
+                            <!-- File Validation -->
+
+                            <div
+                                class="evidence-file-validation"
+                                data-file-validation
+                                aria-live="polite"
+                                hidden
+                            >
+
+                                <span
+                                    data-file-validation-message
+                                ></span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =============================================
+                     UPLOAD PROGRESS
+                ============================================== -->
+
+                <section
+                    class="upload-progress-section"
+                    id="uploadProgressSection"
+                    data-upload-progress-section
+                    aria-labelledby="upload-progress-heading"
+                    aria-live="polite"
+                    hidden
+                >
+
+                    <div class="upload-progress-header">
+
+                        <div>
+
+                            <h2 id="upload-progress-heading">
+                                Uploading Evidence
+                            </h2>
+
+                            <span
+                                class="upload-progress-status"
+                                data-upload-status
+                            >
+                                Preparing upload...
+                            </span>
+
+                        </div>
+
+
+                        <span
+                            class="upload-progress-percentage"
+                            data-upload-percentage
+                        >
+                            0%
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="upload-progress-track"
+                        role="progressbar"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="0"
+                        aria-label="Evidence upload progress"
+                    >
+
+                        <div
+                            class="upload-progress-bar"
+                            data-upload-progress
+                            id="uploadProgressFill"
+                        ></div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =============================================
+                     FORM ACTIONS
+                ============================================== -->
+
+                <footer class="evidence-form-actions">
+
+                    <div class="evidence-form-actions-left">
+
+                        {% if case.id %}
+
+                            <a
+                                href="{% url 'case_detail' case.id %}"
+                                class="button button-secondary"
+                                data-upload-cancel
+                                data-url="{% url 'case_detail' case.id %}"
+                            >
+                                Cancel
+                            </a>
+
+                        {% else %}
+
+                            <a
+                                href="{% url 'case_list' %}"
+                                class="button button-secondary"
+                                data-upload-cancel
+                                data-url="{% url 'case_list' %}"
+                            >
+                                Back to Cases
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="evidence-form-actions-right">
+
+                        <button
+                            type="submit"
+                            class="button button-primary"
+                            id="uploadEvidenceButton"
+                            data-upload-submit
+                            {% if not case.id %}
+                                disabled
+                            {% endif %}
+                        >
+                            Upload Evidence
+                        </button>
+
+                    </div>
+
+                </footer>
+
+
+                <!-- JavaScript message area -->
+
+                <div
+                    class="evidence-upload-message"
+                    data-upload-message
+                    aria-live="polite"
+                    hidden
+                ></div>
+
+            </form>
+
+        </main>
+
+
+        <!-- =====================================================
+             SIDEBAR GUIDANCE
+        ====================================================== -->
+
+        <aside class="evidence-upload-side">
+
+            <section
+                class="evidence-security-card"
+                aria-labelledby="evidence-security-heading"
+            >
+
+                <header class="evidence-security-header">
+
+                    <span
+                        class="evidence-security-icon"
+                        aria-hidden="true"
+                    >
+                        🔒
+                    </span>
+
+                    <div>
+
+                        <h2 id="evidence-security-heading">
+                            Evidence Handling
+                        </h2>
+
+                        <p>
+                            Preserve evidence carefully and maintain
+                            source traceability.
+                        </p>
+
+                    </div>
+
+                </header>
+
+
+                <ul class="evidence-security-list">
+
+                    <li class="evidence-security-item">
+                        Upload only evidence relevant to the selected case.
+                    </li>
+
+                    <li class="evidence-security-item">
+                        Preserve the original file whenever possible.
+                    </li>
+
+                    <li class="evidence-security-item">
+
+                        {% if max_upload_size %}
+
+                            Maximum allowed file size:
+                            {{ max_upload_size }}.
+
+                        {% else %}
+
+                            Maximum file size is subject to
+                            the server upload configuration.
+
+                        {% endif %}
+
+                    </li>
+
+                    <li class="evidence-security-item">
+                        Record the source or reference number whenever
+                        it is available.
+                    </li>
+
+                    <li class="evidence-security-item">
+                        Do not upload passwords, credentials, or
+                        unrelated sensitive information.
+                    </li>
+
+                    <li class="evidence-security-item">
+                        Uploaded files become part of the
+                        investigation record.
+                    </li>
+
+                </ul>
+
+            </section>
+
+
+            <section
+                class="evidence-guidance-card"
+                aria-labelledby="evidence-guidance-heading"
+            >
+
+                <header>
+
+                    <h2 id="evidence-guidance-heading">
+                        Investigation Workflow
+                    </h2>
+
+                </header>
+
+
+                <ol>
+
+                    <li>
+                        Identify the evidence source.
+                    </li>
+
+                    <li>
+                        Upload the original file.
+                    </li>
+
+                    <li>
+                        Preserve source references.
+                    </li>
+
+                    <li>
+                        Extract relevant information.
+                    </li>
+
+                    <li>
+                        Link evidence with people, events,
+                        and other entities.
+                    </li>
+
+                </ol>
+
+            </section>
+
+        </aside>
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+    <script src="{% static 'js/upload.js' %}"></script>
+
+{% endblock %}

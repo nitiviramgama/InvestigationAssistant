@@ -1,0 +1,1082 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}Legal Intelligence | IO Assistant{% endblock %}
+
+{% block page_title %}Legal Intelligence{% endblock %}
+
+{% block page_subtitle %}
+    Review AI-assisted legal provisions, references, and judgments for investigation support
+{% endblock %}
+
+{% block nav_legal %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/legal.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<section
+    class="legal-page"
+    id="legalPage"
+    aria-labelledby="legal-heading"
+    data-case-id="{{ case.id|default:'' }}"
+    data-legal-endpoint="{{ legal_endpoint|default:'' }}"
+>
+
+    <!-- =========================
+         CASE CONTEXT HEADER
+    ========================== -->
+
+    <header class="legal-case-header">
+
+        <div class="legal-case-context">
+
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="{% url 'case_list' %}">
+                    Cases
+                </a>
+
+                <span aria-hidden="true">/</span>
+
+                {% if case.id %}
+                    <a href="{% url 'case_detail' case.id %}">
+                        {{ case.case_number|default:"Case" }}
+                    </a>
+
+                    <span aria-hidden="true">/</span>
+                {% endif %}
+
+                <span aria-current="page">
+                    Legal Intelligence
+                </span>
+            </nav>
+
+            <span class="legal-case-label">
+                Case Context
+            </span>
+
+            <h1 id="legal-heading">
+                {{ case.title|default:"Legal Intelligence Analysis" }}
+            </h1>
+
+            {% if case.case_number %}
+                <p class="legal-case-number">
+                    Case Number: {{ case.case_number }}
+                </p>
+            {% endif %}
+
+        </div>
+
+        <div class="legal-case-status">
+
+            {% if case.status %}
+                <span
+                    class="case-status-badge case-status-{{ case.status|lower }}"
+                >
+                    <span
+                        class="status-dot"
+                        aria-hidden="true"
+                    ></span>
+
+                    {{ case.status }}
+                </span>
+            {% endif %}
+
+            {% if case.id %}
+                <a
+                    href="{% url 'case_detail' case.id %}"
+                    class="button button-secondary"
+                >
+                    Back to Case
+                </a>
+            {% endif %}
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================
+         AI / LEGAL WARNING
+    ========================== -->
+
+    <aside
+        class="legal-warning"
+        role="note"
+        aria-labelledby="legal-warning-heading"
+    >
+        <div
+            class="legal-warning-icon"
+            aria-hidden="true"
+        >
+            !
+        </div>
+
+        <div class="legal-warning-content">
+            <h2 id="legal-warning-heading">
+                Officer Verification Required
+            </h2>
+
+            <p>
+                AI-generated legal suggestions are provided for investigation
+                support only. They may be incomplete, inaccurate, or unsuitable
+                for the specific facts of a case. Every provision, reference,
+                and judgment must be independently verified by the investigating
+                officer before being relied upon or included in an official
+                document.
+            </p>
+        </div>
+    </aside>
+
+
+    <!-- =========================
+         MESSAGE / ERROR AREA
+    ========================== -->
+
+    {% if messages %}
+        <section
+            class="legal-messages"
+            aria-label="Legal intelligence messages"
+            aria-live="polite"
+        >
+            {% for message in messages %}
+                <div
+                    class="legal-message{% if message.tags %} legal-message-{{ message.tags }}{% endif %}"
+                    role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                >
+                    <span
+                        class="legal-message-icon"
+                        aria-hidden="true"
+                    >
+                        {% if message.tags == "success" %}
+                            ✓
+                        {% elif message.tags == "error" %}
+                            !
+                        {% elif message.tags == "warning" %}
+                            ⚠
+                        {% else %}
+                            i
+                        {% endif %}
+                    </span>
+
+                    <span class="legal-message-text">
+                        {{ message }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="legal-message-close"
+                        aria-label="Dismiss message"
+                    >
+                        &times;
+                    </button>
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+
+    {% if legal_error %}
+        <section
+            class="legal-error-state"
+            role="alert"
+            aria-live="assertive"
+        >
+            <div
+                class="legal-state-icon"
+                aria-hidden="true"
+            >
+                !
+            </div>
+
+            <div class="legal-state-content">
+                <h2>Unable to load legal intelligence</h2>
+                <p>{{ legal_error }}</p>
+            </div>
+
+            <button
+                type="button"
+                class="button button-secondary"
+                id="legalRetryButton"
+                data-legal-retry
+            >
+                Try Again
+            </button>
+        </section>
+    {% endif %}
+
+
+    <!-- =========================
+         CASE NARRATIVE
+    ========================== -->
+
+    <section
+        class="legal-narrative-panel"
+        aria-labelledby="narrative-heading"
+    >
+
+        <header class="section-header">
+            <div>
+                <h2 id="narrative-heading">
+                    Case Narrative
+                </h2>
+
+                <p>
+                    Review or provide the case facts that will be used for legal analysis.
+                </p>
+            </div>
+        </header>
+
+        <form
+            method="get"
+            action=""
+            class="legal-analysis-form"
+            id="legalAnalysisForm"
+        >
+
+            {% if case.id %}
+                <input
+                    type="hidden"
+                    name="case_id"
+                    value="{{ case.id }}"
+                >
+            {% endif %}
+
+            <div class="form-field form-field-full">
+
+                <label for="caseNarrative">
+                    Case Narrative / Summary
+                </label>
+
+                {% if case.summary %}
+                    <textarea
+                        id="caseNarrative"
+                        name="narrative"
+                        class="form-textarea legal-narrative-input"
+                        rows="7"
+                        data-case-narrative
+                        placeholder="Enter or review the relevant case facts..."
+                    >{{ case.summary }}</textarea>
+                {% elif narrative %}
+                    <textarea
+                        id="caseNarrative"
+                        name="narrative"
+                        class="form-textarea legal-narrative-input"
+                        rows="7"
+                        data-case-narrative
+                        placeholder="Enter the relevant case facts..."
+                    >{{ narrative }}</textarea>
+                {% else %}
+                    <textarea
+                        id="caseNarrative"
+                        name="narrative"
+                        class="form-textarea legal-narrative-input"
+                        rows="7"
+                        data-case-narrative
+                        placeholder="Enter the relevant case facts..."
+                    >{{ request.GET.narrative|default:'' }}</textarea>
+                {% endif %}
+
+                <span class="form-help-text">
+                    Include only facts relevant to the legal analysis.
+                    Avoid treating AI output as a substitute for legal review.
+                </span>
+
+            </div>
+
+
+            <!-- Analysis Controls -->
+            <div class="legal-analysis-controls">
+
+                <button
+                    type="submit"
+                    class="button button-primary"
+                    id="runLegalAnalysis"
+                    data-run-analysis
+                >
+                    <span aria-hidden="true">⌕</span>
+                    <span>Run Legal Analysis</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="button button-secondary"
+                    id="clearLegalNarrative"
+                    data-clear-narrative
+                >
+                    Clear
+                </button>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- =========================
+         LOADING STATE
+    ========================== -->
+
+    <section
+        class="legal-loading-state"
+        id="legalLoadingState"
+        aria-live="polite"
+        hidden
+    >
+        <div
+            class="legal-loading-indicator"
+            aria-hidden="true"
+        ></div>
+
+        <div>
+            <h2>Running legal analysis</h2>
+
+            <p>
+                Reviewing the case narrative against available legal intelligence.
+            </p>
+        </div>
+    </section>
+
+
+    <!-- =========================
+         LEGAL INTELLIGENCE RESULTS
+    ========================== -->
+
+    <section
+        class="legal-results-section"
+        id="legalResults"
+        aria-labelledby="legal-results-heading"
+    >
+
+        <header class="legal-results-header">
+
+            <div>
+                <h2 id="legal-results-heading">
+                    Legal Intelligence
+                </h2>
+
+                <p id="legal-results-summary" aria-live="polite">
+                    Review potentially relevant legal provisions and judgments.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="button button-secondary"
+                id="refreshLegalResults"
+                data-refresh-legal
+            >
+                <span aria-hidden="true">↻</span>
+                <span>Refresh</span>
+            </button>
+
+        </header>
+
+
+        <!-- =========================
+             TABS
+        ========================== -->
+
+        <div
+            class="legal-tabs"
+            role="tablist"
+            aria-label="Legal intelligence categories"
+        >
+
+            <button
+                type="button"
+                class="legal-tab is-active"
+                id="bnsTab"
+                role="tab"
+                aria-selected="true"
+                aria-controls="bnsPanel"
+                data-legal-tab="bns"
+            >
+                BNS
+            </button>
+
+            <button
+                type="button"
+                class="legal-tab"
+                id="bnssTab"
+                role="tab"
+                aria-selected="false"
+                aria-controls="bnssPanel"
+                data-legal-tab="bnss"
+                tabindex="-1"
+            >
+                BNSS
+            </button>
+
+            <button
+                type="button"
+                class="legal-tab"
+                id="bsaTab"
+                role="tab"
+                aria-selected="false"
+                aria-controls="bsaPanel"
+                data-legal-tab="bsa"
+                tabindex="-1"
+            >
+                BSA
+            </button>
+
+            <button
+                type="button"
+                class="legal-tab"
+                id="judgmentsTab"
+                role="tab"
+                aria-selected="false"
+                aria-controls="judgmentsPanel"
+                data-legal-tab="judgments"
+                tabindex="-1"
+            >
+                Judgments
+            </button>
+
+        </div>
+
+
+        <!-- =========================
+             BNS PANEL
+        ========================== -->
+
+        <section
+            class="legal-tab-panel is-active"
+            id="bnsPanel"
+            role="tabpanel"
+            aria-labelledby="bnsTab"
+            data-legal-panel="bns"
+        >
+
+            {% if bns_results %}
+
+                <div class="legal-results-list">
+                    {% for result in bns_results %}
+
+                        <article
+                            class="legal-result-card"
+                            data-result-type="bns"
+                        >
+
+                            <header class="legal-result-header">
+
+                                <div>
+                                    <span class="legal-result-category">
+                                        BNS Provision
+                                    </span>
+
+                                    <h3 class="legal-result-title">
+                                        {{ result.title|default:result.provision|default:"BNS Provision" }}
+                                    </h3>
+                                </div>
+
+                                {% if result.confidence %}
+                                    <span class="legal-confidence confidence-{{ result.confidence|lower }}">
+                                        {{ result.confidence }}
+                                    </span>
+                                {% else %}
+                                    <span class="legal-confidence confidence-placeholder">
+                                        Verification required
+                                    </span>
+                                {% endif %}
+
+                            </header>
+
+
+                            <div class="legal-result-body">
+
+                                {% if result.explanation %}
+                                    <p class="legal-result-explanation">
+                                        {{ result.explanation }}
+                                    </p>
+                                {% else %}
+                                    <p class="legal-result-explanation legal-data-unavailable">
+                                        Explanation not available.
+                                    </p>
+                                {% endif %}
+
+                            </div>
+
+
+                            <footer class="legal-result-footer">
+
+                                {% if result.source_name %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Source
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_name }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                {% if result.source_page %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Page
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_page }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                <div class="legal-verification-area">
+                                    <label class="verification-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            name="verified_result"
+                                            value="{{ result.id|default:'' }}"
+                                            data-verify-result
+                                        >
+                                        <span>
+                                            Officer verified
+                                        </span>
+                                    </label>
+                                </div>
+
+                            </footer>
+
+                        </article>
+
+                    {% endfor %}
+                </div>
+
+            {% else %}
+
+                <div
+                    class="legal-empty-state"
+                    data-empty-state="bns"
+                >
+                    <div
+                        class="legal-empty-icon"
+                        aria-hidden="true"
+                    >
+                        §
+                    </div>
+
+                    <h3>
+                        No BNS results available
+                    </h3>
+
+                    <p>
+                        Relevant Bharatiya Nyaya Sanhita provisions will
+                        appear here after legal analysis is available.
+                    </p>
+                </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- =========================
+             BNSS PANEL
+        ========================== -->
+
+        <section
+            class="legal-tab-panel"
+            id="bnssPanel"
+            role="tabpanel"
+            aria-labelledby="bnssTab"
+            data-legal-panel="bnss"
+            hidden
+        >
+
+            {% if bnss_results %}
+
+                <div class="legal-results-list">
+                    {% for result in bnss_results %}
+
+                        <article
+                            class="legal-result-card"
+                            data-result-type="bnss"
+                        >
+
+                            <header class="legal-result-header">
+
+                                <div>
+                                    <span class="legal-result-category">
+                                        BNSS Provision
+                                    </span>
+
+                                    <h3 class="legal-result-title">
+                                        {{ result.title|default:result.provision|default:"BNSS Provision" }}
+                                    </h3>
+                                </div>
+
+                                {% if result.confidence %}
+                                    <span class="legal-confidence confidence-{{ result.confidence|lower }}">
+                                        {{ result.confidence }}
+                                    </span>
+                                {% else %}
+                                    <span class="legal-confidence confidence-placeholder">
+                                        Verification required
+                                    </span>
+                                {% endif %}
+
+                            </header>
+
+                            <div class="legal-result-body">
+                                <p class="legal-result-explanation">
+                                    {{ result.explanation|default:"Explanation not available." }}
+                                </p>
+                            </div>
+
+                            <footer class="legal-result-footer">
+
+                                {% if result.source_name %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Source
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_name }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                {% if result.source_page %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Page
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_page }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                <label class="verification-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        name="verified_result"
+                                        value="{{ result.id|default:'' }}"
+                                        data-verify-result
+                                    >
+                                    <span>Officer verified</span>
+                                </label>
+
+                            </footer>
+
+                        </article>
+
+                    {% endfor %}
+                </div>
+
+            {% else %}
+
+                <div
+                    class="legal-empty-state"
+                    data-empty-state="bnss"
+                >
+                    <div
+                        class="legal-empty-icon"
+                        aria-hidden="true"
+                    >
+                        §
+                    </div>
+
+                    <h3>
+                        No BNSS results available
+                    </h3>
+
+                    <p>
+                        Relevant Bharatiya Nagarik Suraksha Sanhita
+                        provisions will appear here when available.
+                    </p>
+                </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- =========================
+             BSA PANEL
+        ========================== -->
+
+        <section
+            class="legal-tab-panel"
+            id="bsaPanel"
+            role="tabpanel"
+            aria-labelledby="bsaTab"
+            data-legal-panel="bsa"
+            hidden
+        >
+
+            {% if bsa_results %}
+
+                <div class="legal-results-list">
+                    {% for result in bsa_results %}
+
+                        <article
+                            class="legal-result-card"
+                            data-result-type="bsa"
+                        >
+
+                            <header class="legal-result-header">
+
+                                <div>
+                                    <span class="legal-result-category">
+                                        BSA Provision
+                                    </span>
+
+                                    <h3 class="legal-result-title">
+                                        {{ result.title|default:result.provision|default:"BSA Provision" }}
+                                    </h3>
+                                </div>
+
+                                {% if result.confidence %}
+                                    <span class="legal-confidence confidence-{{ result.confidence|lower }}">
+                                        {{ result.confidence }}
+                                    </span>
+                                {% else %}
+                                    <span class="legal-confidence confidence-placeholder">
+                                        Verification required
+                                    </span>
+                                {% endif %}
+
+                            </header>
+
+                            <div class="legal-result-body">
+                                <p class="legal-result-explanation">
+                                    {{ result.explanation|default:"Explanation not available." }}
+                                </p>
+                            </div>
+
+                            <footer class="legal-result-footer">
+
+                                {% if result.source_name %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Source
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_name }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                {% if result.source_page %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Page
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_page }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                <label class="verification-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        name="verified_result"
+                                        value="{{ result.id|default:'' }}"
+                                        data-verify-result
+                                    >
+                                    <span>Officer verified</span>
+                                </label>
+
+                            </footer>
+
+                        </article>
+
+                    {% endfor %}
+                </div>
+
+            {% else %}
+
+                <div
+                    class="legal-empty-state"
+                    data-empty-state="bsa"
+                >
+                    <div
+                        class="legal-empty-icon"
+                        aria-hidden="true"
+                    >
+                        §
+                    </div>
+
+                    <h3>
+                        No BSA results available
+                    </h3>
+
+                    <p>
+                        Relevant Bharatiya Sakshya Adhiniyam provisions
+                        will appear here when available.
+                    </p>
+                </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- =========================
+             JUDGMENTS PANEL
+        ========================== -->
+
+        <section
+            class="legal-tab-panel"
+            id="judgmentsPanel"
+            role="tabpanel"
+            aria-labelledby="judgmentsTab"
+            data-legal-panel="judgments"
+            hidden
+        >
+
+            {% if judgments %}
+
+                <div class="legal-results-list">
+                    {% for result in judgments %}
+
+                        <article
+                            class="legal-result-card judgment-result-card"
+                            data-result-type="judgment"
+                        >
+
+                            <header class="legal-result-header">
+
+                                <div>
+                                    <span class="legal-result-category">
+                                        Judgment
+                                    </span>
+
+                                    <h3 class="legal-result-title">
+                                        {{ result.title|default:result.case_name|default:"Judgment Reference" }}
+                                    </h3>
+                                </div>
+
+                                {% if result.confidence %}
+                                    <span class="legal-confidence confidence-{{ result.confidence|lower }}">
+                                        {{ result.confidence }}
+                                    </span>
+                                {% else %}
+                                    <span class="legal-confidence confidence-placeholder">
+                                        Verification required
+                                    </span>
+                                {% endif %}
+
+                            </header>
+
+                            <div class="legal-result-body">
+
+                                {% if result.explanation %}
+                                    <p class="legal-result-explanation">
+                                        {{ result.explanation }}
+                                    </p>
+                                {% elif result.summary %}
+                                    <p class="legal-result-explanation">
+                                        {{ result.summary }}
+                                    </p>
+                                {% else %}
+                                    <p class="legal-result-explanation legal-data-unavailable">
+                                        Judgment summary not available.
+                                    </p>
+                                {% endif %}
+
+                            </div>
+
+                            <footer class="legal-result-footer">
+
+                                {% if result.source_name %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Source
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_name }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                {% if result.source_page %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Page
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.source_page }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                {% if result.reference %}
+                                    <div class="legal-source">
+                                        <span class="legal-source-label">
+                                            Reference
+                                        </span>
+
+                                        <span class="legal-source-value">
+                                            {{ result.reference }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                <label class="verification-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        name="verified_result"
+                                        value="{{ result.id|default:'' }}"
+                                        data-verify-result
+                                    >
+                                    <span>Officer verified</span>
+                                </label>
+
+                            </footer>
+
+                        </article>
+
+                    {% endfor %}
+                </div>
+
+            {% else %}
+
+                <div
+                    class="legal-empty-state"
+                    data-empty-state="judgments"
+                >
+                    <div
+                        class="legal-empty-icon"
+                        aria-hidden="true"
+                    >
+                        ⚖
+                    </div>
+
+                    <h3>
+                        No judgment results available
+                    </h3>
+
+                    <p>
+                        Potentially relevant judgments will appear here
+                        when legal intelligence data is available.
+                    </p>
+                </div>
+
+            {% endif %}
+
+        </section>
+
+    </section>
+
+
+    <!-- =========================
+         OFFICER VERIFICATION AREA
+    ========================== -->
+
+    <section
+        class="legal-verification-panel"
+        aria-labelledby="verification-heading"
+    >
+
+        <div class="legal-verification-content">
+
+            <div
+                class="legal-verification-icon"
+                aria-hidden="true"
+            >
+                ✓
+            </div>
+
+            <div>
+                <h2 id="verification-heading">
+                    Officer Verification
+                </h2>
+
+                <p>
+                    Mark individual results as verified only after checking
+                    the original legal source and confirming applicability
+                    to the case facts.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="legal-verification-actions">
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="verifySelectedResults"
+                data-verify-selected
+            >
+                Mark Selected as Verified
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         EMPTY GLOBAL STATE
+    ========================== -->
+
+    <section
+        class="legal-global-empty-state"
+        id="legalGlobalEmptyState"
+        aria-labelledby="legal-global-empty-heading"
+        hidden
+    >
+
+        <div
+            class="legal-empty-icon"
+            aria-hidden="true"
+        >
+            ⚖
+        </div>
+
+        <h2 id="legal-global-empty-heading">
+            No legal intelligence available
+        </h2>
+
+        <p>
+            Enter the relevant case narrative and run legal analysis
+            to retrieve potential provisions, references, and judgments.
+        </p>
+
+        <button
+            type="button"
+            class="btn btn-primary"
+            data-focus-narrative
+        >
+            Enter Case Narrative
+        </button>
+
+    </section>
+
+
+    <!-- =========================
+         LIVE REGION FOR JS
+    ========================== -->
+
+    <div
+        class="legal-live-region"
+        id="legalLiveRegion"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="{% static 'js/legal.js' %}"></script>
+{% endblock %}

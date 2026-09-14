@@ -1,0 +1,705 @@
+{% extends "chatbot/base.html" %}
+{% load static %}
+
+{% block title %}Timeline | IO Assistant{% endblock %}
+
+{% block page_title %}Investigation Timeline{% endblock %}
+
+{% block page_subtitle %}
+    Review chronological case events, evidence references, and investigation activity
+{% endblock %}
+
+{% block nav_timeline %}active{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<section
+    class="timeline-page"
+    id="timelinePage"
+    aria-labelledby="timeline-heading"
+    data-case-id="{{ case.id|default:'' }}"
+    data-current-page="1"
+    data-page-size="20"
+>
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+
+    <header class="timeline-header">
+
+        <div class="timeline-header-main">
+
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+
+                <a href="{% url 'case_list' %}">
+                    Cases
+                </a>
+
+                <span aria-hidden="true">/</span>
+
+                {% if case.id %}
+
+                    <a href="{% url 'case_detail' case.id %}">
+                        {{ case.case_number|default:"Case" }}
+                    </a>
+
+                    <span aria-hidden="true">/</span>
+
+                {% endif %}
+
+                <span aria-current="page">
+                    Timeline
+                </span>
+
+            </nav>
+
+            <div class="timeline-case-header">
+
+                <div class="timeline-case-identity">
+
+                    <span class="timeline-case-label">
+                        Case Timeline
+                    </span>
+
+                    <h1 id="timeline-heading">
+                        {{ case.title|default:"Investigation Timeline" }}
+                    </h1>
+
+                    {% if case.case_number %}
+                        <p class="timeline-case-number">
+                            Case Number:
+                            {{ case.case_number }}
+                        </p>
+                    {% endif %}
+
+                </div>
+
+                {% if case.status %}
+
+                    <span
+                        class="case-status-badge case-status-{{ case.status|lower }}"
+                    >
+                        <span
+                            class="status-dot"
+                            aria-hidden="true"
+                        ></span>
+
+                        {{ case.status }}
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        <div class="timeline-header-actions">
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="refreshTimelineButton"
+                data-timeline-refresh
+            >
+                <span aria-hidden="true">↻</span>
+                <span>Refresh</span>
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================================================
+         DJANGO MESSAGES
+    ========================================================== -->
+
+    {% if messages %}
+
+        <section
+            class="timeline-messages"
+            aria-label="Timeline messages"
+            aria-live="polite"
+        >
+
+            {% for message in messages %}
+
+                <div
+                    class="timeline-message timeline-message-{{ message.tags|default:'info' }}"
+                    role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                >
+
+                    <span
+                        class="timeline-message-icon"
+                        aria-hidden="true"
+                    >
+                        {% if message.tags == "success" %}
+                            ✓
+                        {% elif message.tags == "error" %}
+                            !
+                        {% elif message.tags == "warning" %}
+                            ⚠
+                        {% else %}
+                            i
+                        {% endif %}
+                    </span>
+
+                    <span class="timeline-message-text">
+                        {{ message }}
+                    </span>
+
+                </div>
+
+            {% endfor %}
+
+        </section>
+
+    {% endif %}
+
+
+    <!-- =========================================================
+         FILTER TOOLBAR
+    ========================================================== -->
+
+    <section
+        class="timeline-toolbar"
+        aria-labelledby="timeline-toolbar-heading"
+    >
+
+        <div class="timeline-toolbar-heading">
+
+            <div>
+
+                <span class="timeline-section-eyebrow">
+                    Investigation Activity
+                </span>
+
+                <h2 id="timeline-toolbar-heading">
+                    Timeline Controls
+                </h2>
+
+                <p>
+                    Filter investigation events by type or date range.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form
+            class="timeline-filters"
+            id="timelineFilterForm"
+            method="get"
+            action=""
+        >
+
+            <!-- Event Type -->
+
+            <div class="timeline-filter-group">
+
+                <label for="timelineEventType">
+                    Event Type
+                </label>
+
+                <select
+                    id="timelineEventType"
+                    name="event_type"
+                    class="timeline-filter-input"
+                    data-event-type-filter
+                >
+
+                    <option value="">
+                        All event types
+                    </option>
+
+                    {% if available_event_types %}
+
+                        {% for event_type in available_event_types %}
+
+                            <option
+                                value="{{ event_type }}"
+                                {% if request.GET.event_type == event_type %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ event_type }}
+                            </option>
+
+                        {% endfor %}
+
+                    {% endif %}
+
+                </select>
+
+            </div>
+
+
+            <!-- From Date -->
+
+            <div class="timeline-filter-group">
+
+                <label for="timelineDateFrom">
+                    From Date
+                </label>
+
+                <input
+                    type="date"
+                    id="timelineDateFrom"
+                    name="date_from"
+                    class="timeline-filter-input"
+                    value="{{ request.GET.date_from|default:'' }}"
+                    data-timeline-date-from
+                >
+
+            </div>
+
+
+            <!-- To Date -->
+
+            <div class="timeline-filter-group">
+
+                <label for="timelineDateTo">
+                    To Date
+                </label>
+
+                <input
+                    type="date"
+                    id="timelineDateTo"
+                    name="date_to"
+                    class="timeline-filter-input"
+                    value="{{ request.GET.date_to|default:'' }}"
+                    data-timeline-date-to
+                >
+
+            </div>
+
+
+            <!-- Filter Actions -->
+
+            <div class="timeline-filter-actions">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Apply Filters
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="clearTimelineFilters"
+                    data-timeline-filter-reset
+                >
+                    Clear
+                </button>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- =========================================================
+         LOADING STATE
+    ========================================================== -->
+
+    <section
+        class="timeline-state timeline-loading"
+        id="timelineLoading"
+        aria-live="polite"
+        hidden
+    >
+
+        <div
+            class="timeline-loading-indicator"
+            aria-hidden="true"
+        ></div>
+
+        <div>
+
+            <h2>
+                Loading timeline
+            </h2>
+
+            <p>
+                Retrieving investigation events.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ERROR STATE
+    ========================================================== -->
+
+    <section
+        class="timeline-state timeline-error"
+        id="timelineError"
+        role="alert"
+        aria-live="assertive"
+        hidden
+    >
+
+        <div
+            class="timeline-state-icon"
+            aria-hidden="true"
+        >
+            !
+        </div>
+
+        <div class="timeline-state-content">
+
+            <h2>
+                Unable to load timeline
+            </h2>
+
+            <p data-error-message>
+                The investigation timeline could not be loaded.
+            </p>
+
+        </div>
+
+        <button
+            type="button"
+            class="btn btn-secondary"
+            data-timeline-refresh
+        >
+            Try Again
+        </button>
+
+    </section>
+
+
+    <!-- =========================================================
+         TIMELINE CONTENT
+    ========================================================== -->
+
+    <section
+        class="timeline-content-section"
+        aria-labelledby="events-heading"
+    >
+
+        <header class="timeline-content-header">
+
+            <div>
+
+                <span class="timeline-section-eyebrow">
+                    Case Record
+                </span>
+
+                <h2 id="events-heading">
+                    Case Events
+                </h2>
+
+                <p
+                    class="timeline-result-summary"
+                    id="timelineResultSummary"
+                    aria-live="polite"
+                >
+                    {% if timeline_events %}
+                        {{ timeline_events|length }}
+                        event{{ timeline_events|length|pluralize }}
+                        recorded
+                    {% else %}
+                        No timeline events recorded
+                    {% endif %}
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <!-- =====================================================
+             TIMELINE
+        ====================================================== -->
+
+        <div
+            class="timeline-list"
+            id="timelineList"
+            data-timeline-list
+            aria-live="polite"
+        >
+
+            {% if timeline_events %}
+
+                {% for event in timeline_events %}
+
+                    <article
+                        class="timeline-event"
+                        data-timeline-event
+                        data-event-type="{{ event.event_type|default:'' }}"
+                        data-event-date="{% if event.datetime %}{{ event.datetime|date:'Y-m-d' }}{% endif %}"
+                    >
+
+                        <!-- Date -->
+
+                        <div class="timeline-event-date">
+
+                            {% if event.datetime %}
+
+                                <time
+                                    datetime="{{ event.datetime|date:'c' }}"
+                                    class="timeline-event-date-primary"
+                                >
+                                    {{ event.datetime|date:"d M Y" }}
+                                </time>
+
+                                <span class="timeline-event-date-secondary">
+                                    {{ event.datetime|date:"H:i" }}
+                                </span>
+
+                            {% elif event.created_at %}
+
+                                <time
+                                    datetime="{{ event.created_at|date:'c' }}"
+                                    class="timeline-event-date-primary"
+                                >
+                                    {{ event.created_at|date:"d M Y" }}
+                                </time>
+
+                                <span class="timeline-event-date-secondary">
+                                    {{ event.created_at|date:"H:i" }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="timeline-event-date-primary">
+                                    Date unavailable
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Timeline Marker -->
+
+                        <div
+                            class="timeline-event-marker-column"
+                            aria-hidden="true"
+                        >
+
+                            <span class="timeline-event-marker">
+                            </span>
+
+                        </div>
+
+
+                        <!-- Event Card -->
+
+                        <div class="timeline-event-card">
+
+                            <header class="timeline-event-card-header">
+
+                                <div class="timeline-event-card-heading">
+
+                                    <h3 class="timeline-event-title">
+                                        {{ event.title|default:"Investigation Event" }}
+                                    </h3>
+
+                                    {% if event.event_type %}
+
+                                        <span class="timeline-event-type">
+                                            {{ event.event_type }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                                {% if event.status %}
+
+                                    <span
+                                        class="timeline-event-status timeline-status--{{ event.status|lower }}"
+                                    >
+                                        {{ event.status }}
+                                    </span>
+
+                                {% endif %}
+
+                            </header>
+
+
+                            {% if event.description %}
+
+                                <p class="timeline-event-description">
+                                    {{ event.description }}
+                                </p>
+
+                            {% else %}
+
+                                <p class="timeline-event-description timeline-data-unavailable">
+                                    No event description available.
+                                </p>
+
+                            {% endif %}
+
+
+                            <!-- Event Metadata -->
+
+                            {% if event.location or event.officer %}
+
+                                <div class="timeline-event-meta">
+
+                                    {% if event.location %}
+
+                                        <div class="timeline-event-meta-item">
+
+                                            <span class="timeline-event-meta-label">
+                                                Location
+                                            </span>
+
+                                            <span class="timeline-event-meta-value">
+                                                {{ event.location }}
+                                            </span>
+
+                                        </div>
+
+                                    {% endif %}
+
+
+                                    {% if event.officer %}
+
+                                        <div class="timeline-event-meta-item">
+
+                                            <span class="timeline-event-meta-label">
+                                                Officer
+                                            </span>
+
+                                            <span class="timeline-event-meta-value">
+                                                {{ event.officer }}
+                                            </span>
+
+                                        </div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            {% endif %}
+
+
+                            <!-- Source Reference -->
+
+                            {% if event.source_reference %}
+
+                                <footer class="timeline-event-source">
+
+                                    <span class="timeline-event-source-label">
+                                        Source / Reference
+                                    </span>
+
+                                    <span class="timeline-event-source-reference">
+                                        {{ event.source_reference }}
+                                    </span>
+
+                                </footer>
+
+                            {% endif %}
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- =====================================================
+             EMPTY STATE
+        ====================================================== -->
+
+        <section
+            class="timeline-empty-state"
+            id="timelineEmptyState"
+            aria-labelledby="timeline-empty-heading"
+            {% if timeline_events %}hidden{% endif %}
+        >
+
+            <div
+                class="timeline-empty-icon"
+                aria-hidden="true"
+            >
+                ◷
+            </div>
+
+            <h2 id="timeline-empty-heading">
+                No timeline events found
+            </h2>
+
+            <p>
+                Investigation events recorded for this case will
+                appear here in chronological order.
+            </p>
+
+            {% if request.GET.event_type or request.GET.date_from or request.GET.date_to %}
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-timeline-filter-reset
+                >
+                    Clear Filters
+                </button>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- =====================================================
+             PAGINATION / LOAD MORE
+        ====================================================== -->
+
+        <footer
+            class="timeline-pagination"
+            id="timelinePagination"
+            data-timeline-pagination
+            hidden
+        >
+
+            <div
+                class="timeline-pagination-info"
+                data-timeline-pagination-info
+            ></div>
+
+            <div
+                class="timeline-pagination-controls"
+                data-timeline-pagination-controls
+            ></div>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                data-timeline-load-more
+                hidden
+            >
+                Load More Events
+            </button>
+
+        </footer>
+
+    </section>
+
+</section>
+
+{% endblock %}
+
+
+{% block extra_js %}
+    <script src="{% static 'js/timeline.js' %}"></script>
+{% endblock %}
