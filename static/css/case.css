@@ -1000,3 +1000,12 @@
         min-height: 190px;
     }
 }
+/* ============================================================
+   STATE VISIBILITY FIX
+   The JS controls loading / empty / error states with [hidden].
+   Keep hidden elements completely removed from the layout.
+   ============================================================ */
+
+.case-list-page [hidden] {
+    display: none !important;
+}
