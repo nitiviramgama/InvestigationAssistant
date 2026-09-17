@@ -6,28 +6,13 @@
 {% block page_title %}Reports & Documents{% endblock %}
 
 {% block page_subtitle %}
-    Generate, review, and manage investigation-related documents for the selected case.
+Generate, review, and manage investigation-related documents for the selected case.
 {% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+<link rel="stylesheet" href="{% static 'css/reports.css' %}">
 {% endblock %}
 
-{% block search_action %}
-    <div class="page-search reports-search">
-        <label for="documentSearch" class="visually-hidden">
-            Search documents
-        </label>
-
-        <input
-            type="search"
-            id="documentSearch"
-            class="form-control"
-            placeholder="Search documents..."
-            autocomplete="off"
-        >
-    </div>
-{% endblock %}
 
 {% block breadcrumb %}
 <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -56,21 +41,21 @@
 
     <!-- Case Header -->
     <header class="case-header reports-case-header">
-        <div class="case-header-main">
-            <div class="case-header-label">Investigation Case</div>
+        <div class="reports-case-information">
+            <div class="reports-case-label">Investigation Case</div>
 
-            <h2 class="case-title">
+            <h2 class="reports-case-title">
                 {{ case.title|default:"Investigation Case" }}
             </h2>
 
             {% if case.case_number %}
-                <p class="case-number">
+                <p class="reports-case-number">
                     Case No. {{ case.case_number }}
                 </p>
             {% endif %}
         </div>
 
-        <div class="case-header-meta">
+        <div class="reports-case-status">
             {% if case.status %}
                 <span class="status-badge status-{{ case.status|lower }}">
                     {{ case.status }}
@@ -139,7 +124,7 @@
 
     <!-- Available Document Types -->
     <section class="reports-section document-types-section">
-        <div class="section-header">
+        <div class="reports-section-header">
             <div>
                 <span class="section-eyebrow">Document Management</span>
                 <h2>Available Document Types</h2>
@@ -149,7 +134,19 @@
                 </p>
             </div>
 
-            <div class="section-actions">
+            <div class="reports-section-actions">
+                <div class="reports-document-search">
+                    <label for="documentSearch" class="sr-only">Search documents</label>
+                    <input
+                        type="search"
+                        id="documentSearch"
+                        class="form-control"
+                        placeholder="Search documents..."
+                        autocomplete="off"
+                        data-document-search
+                    >
+                </div>
+
                 <button
                     type="button"
                     class="btn btn-secondary"
@@ -196,7 +193,7 @@
                         <span>PC</span>
                     </div>
 
-                    <div class="document-card-title">
+                    <div class="document-card-heading">
                         <h3>Purvani Chargesheet</h3>
                         <span class="document-category">
                             Chargesheet / Investigation
@@ -216,7 +213,7 @@
                     </span>
                 </div>
 
-                <div class="document-card-actions">
+                <div class="document-actions">
                     <button
                         type="button"
                         class="btn btn-primary generate-document-button"
@@ -252,7 +249,7 @@
                         <span>MT</span>
                     </div>
 
-                    <div class="document-card-title">
+                    <div class="document-card-heading">
                         <h3>Medical Treatment Letter</h3>
                         <span class="document-category">
                             Medical / Investigation
@@ -272,7 +269,7 @@
                     </span>
                 </div>
 
-                <div class="document-card-actions">
+                <div class="document-actions">
                     <button
                         type="button"
                         class="btn btn-primary generate-document-button"
@@ -308,7 +305,7 @@
                         <span>CR</span>
                     </div>
 
-                    <div class="document-card-title">
+                    <div class="document-card-heading">
                         <h3>Police Custody Remand Request</h3>
                         <span class="document-category">
                             Custody / Court
@@ -327,7 +324,7 @@
                     </span>
                 </div>
 
-                <div class="document-card-actions">
+                <div class="document-actions">
                     <button
                         type="button"
                         class="btn btn-primary generate-document-button"
@@ -363,7 +360,7 @@
                         <span>SR</span>
                     </div>
 
-                    <div class="document-card-title">
+                    <div class="document-card-heading">
                         <h3>Seizure Receipt</h3>
                         <span class="document-category">
                             Evidence / Seizure
@@ -382,7 +379,7 @@
                     </span>
                 </div>
 
-                <div class="document-card-actions">
+                <div class="document-actions">
                     <button
                         type="button"
                         class="btn btn-primary generate-document-button"
@@ -418,7 +415,7 @@
                         <span>CC</span>
                     </div>
 
-                    <div class="document-card-title">
+                    <div class="document-card-heading">
                         <h3>Court Custody Letter</h3>
                         <span class="document-category">
                             Court / Custody
@@ -437,7 +434,7 @@
                     </span>
                 </div>
 
-                <div class="document-card-actions">
+                <div class="document-actions">
                     <button
                         type="button"
                         class="btn btn-primary generate-document-button"
@@ -473,7 +470,7 @@
                         <span>AP</span>
                     </div>
 
-                    <div class="document-card-title">
+                    <div class="document-card-heading">
                         <h3>Accused Panchanama</h3>
                         <span class="document-category">
                             Accused / Procedure
@@ -492,7 +489,7 @@
                     </span>
                 </div>
 
-                <div class="document-card-actions">
+                <div class="document-actions">
                     <button
                         type="button"
                         class="btn btn-primary generate-document-button"
@@ -528,7 +525,7 @@
                         <span>FI</span>
                     </div>
 
-                    <div class="document-card-title">
+                    <div class="document-card-heading">
                         <h3>Accused Face Identification Form</h3>
                         <span class="document-category">
                             Identification / Evidence
@@ -547,7 +544,7 @@
                     </span>
                 </div>
 
-                <div class="document-card-actions">
+                <div class="document-actions">
                     <button
                         type="button"
                         class="btn btn-primary generate-document-button"
@@ -597,7 +594,7 @@
 
     <!-- Officer Review Area -->
     <section class="reports-section officer-review-section">
-        <div class="section-header">
+        <div class="reports-section-header">
             <div>
                 <span class="section-eyebrow">Human Verification</span>
                 <h2>Officer Review</h2>
@@ -608,7 +605,7 @@
             </div>
         </div>
 
-        <div class="review-panel" id="officerReviewPanel">
+        <div class="review-card" id="officerReviewPanel">
 
             <div class="review-status">
                 <span class="review-status-label">Review Status</span>
@@ -710,7 +707,7 @@
 
     <!-- Generated Document History -->
     <section class="reports-section document-history-section">
-        <div class="section-header">
+        <div class="reports-section-header">
             <div>
                 <span class="section-eyebrow">Audit Trail</span>
                 <h2>Generated Document History</h2>
@@ -720,7 +717,7 @@
                 </p>
             </div>
 
-            <div class="section-actions">
+            <div class="reports-section-actions">
                 <button
                     type="button"
                     class="btn btn-secondary"
@@ -833,17 +830,17 @@
 
         <!-- Mobile History Cards -->
         <div
-            class="history-card-list"
+            class="history-mobile"
             id="generatedDocumentsCardList"
             data-history-cards
         >
             {% for document in generated_documents %}
                 <article
-                    class="history-card"
+                    class="history-mobile-card"
                     data-history-card
                     data-document-id="{{ document.id }}"
                 >
-                    <div class="history-card-header">
+                    <div class="history-mobile-card-header">
                         <div>
                             <h3>
                                 {{ document.title|default:document.document_type }}
@@ -861,7 +858,7 @@
                         </span>
                     </div>
 
-                    <dl class="history-card-details">
+                    <dl class="history-mobile-card-details">
                         <div>
                             <dt>Generated On</dt>
                             <dd>
@@ -880,7 +877,7 @@
                         </div>
                     </dl>
 
-                    <div class="history-card-actions">
+                    <div class="history-mobile-card-actions">
                         <button
                             type="button"
                             class="btn btn-small btn-secondary"
