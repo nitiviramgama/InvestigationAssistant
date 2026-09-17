@@ -569,11 +569,16 @@
    ========================================================================== */
 
 .timeline-loading {
+    min-height: 180px;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 240px;
-    padding: 30px;
+    text-align: center;
+    padding: 40px 24px;
+}
+
+.timeline-content {
+    margin-top: 24px;
 }
 
 .timeline-loading-content {
@@ -1162,5 +1167,337 @@
 
     .timeline-list::before {
         background: #999;
+    }
+}
+
+/* ==========================================================================
+   TIMELINE PAGE FORMAT FIX
+   Matches the current timeline.html structure.
+   ========================================================================== */
+
+.timeline-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.timeline-header-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.timeline-header-actions {
+    flex: 0 0 auto;
+    padding-top: 28px;
+}
+
+.timeline-case-identity {
+    min-width: 0;
+}
+
+.timeline-case-header {
+    align-items: center;
+}
+
+/* Current HTML contains a heading block and the filter form as siblings. */
+.timeline-toolbar {
+    display: grid;
+    grid-template-columns: minmax(240px, .85fr) minmax(0, 1.8fr);
+    align-items: end;
+    gap: 24px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+}
+
+.timeline-toolbar-heading {
+    min-width: 0;
+}
+
+.timeline-toolbar-heading h2 {
+    margin: 0 0 5px;
+    color: var(--color-text);
+    font-size: var(--font-size-xl);
+    line-height: 1.2;
+}
+
+.timeline-toolbar-heading p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.timeline-filters {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+    width: 100%;
+}
+
+.timeline-filter-input,
+.timeline-filters select,
+.timeline-filters input {
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+}
+
+.timeline-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Current HTML uses timeline-state + timeline-loading-indicator. */
+.timeline-state {
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 24px;
+    border-radius: var(--radius-lg);
+}
+
+.timeline-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 150px;
+    padding: 30px 24px;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    text-align: center;
+}
+
+.timeline-loading[hidden],
+.timeline-error[hidden],
+.timeline-pagination[hidden],
+.timeline-empty-state[hidden] {
+    display: none !important;
+}
+
+.timeline-loading-indicator {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: timeline-spin .8s linear infinite;
+}
+
+.timeline-loading h2 {
+    margin: 0 0 5px;
+    color: var(--color-text);
+    font-size: var(--font-size-lg);
+}
+
+.timeline-loading p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+@keyframes timeline-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Current HTML uses timeline-state-icon / timeline-state-content. */
+.timeline-error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid #f3c2bd;
+    background: var(--color-danger-light);
+}
+
+.timeline-state-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-white);
+    color: var(--color-danger);
+    font-weight: 800;
+}
+
+.timeline-state-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.timeline-error h2 {
+    margin: 0 0 4px;
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+.timeline-error p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+}
+
+/* Events section */
+.timeline-content-section {
+    width: 100%;
+    margin-top: 0;
+}
+
+.timeline-content-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.timeline-section-eyebrow {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.timeline-content-header h2 {
+    margin: 0 0 5px;
+    color: var(--color-text);
+    font-size: var(--font-size-xl);
+}
+
+.timeline-result-summary {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* Current HTML uses timeline-empty-icon, not timeline-empty-state-icon. */
+.timeline-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 190px;
+    padding: 28px;
+    margin-top: 12px;
+    border: 1px dashed var(--color-border-dark);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-alt);
+    text-align: center;
+}
+
+.timeline-empty-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 12px;
+    place-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-white);
+    color: var(--color-text-muted);
+    font-size: 20px;
+}
+
+.timeline-empty-state h2 {
+    margin: 0 0 6px;
+    color: var(--color-text);
+    font-size: var(--font-size-md);
+}
+
+.timeline-empty-state p {
+    max-width: 430px;
+    margin: 0 auto;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    line-height: 1.55;
+}
+
+@media (max-width: 1000px) {
+    .timeline-toolbar {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .timeline-filters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .timeline-filter-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 800px) {
+    .timeline-header {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .timeline-header-actions {
+        width: 100%;
+        padding-top: 0;
+        justify-content: flex-start;
+    }
+
+    .timeline-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .timeline-filter-group:first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .timeline-toolbar {
+        padding: 14px;
+    }
+
+    .timeline-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .timeline-filter-group:first-child {
+        grid-column: auto;
+    }
+
+    .timeline-filter-actions {
+        grid-column: auto;
+        width: 100%;
+    }
+
+    .timeline-filter-actions .btn {
+        flex: 1;
+    }
+
+    .timeline-loading {
+        min-height: 140px;
+        padding: 24px 16px;
+    }
+
+    .timeline-content-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .timeline-empty-state {
+        min-height: 180px;
+        padding: 22px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .timeline-loading-indicator {
+        animation: none;
     }
 }
