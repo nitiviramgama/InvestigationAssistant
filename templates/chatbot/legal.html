@@ -31,7 +31,7 @@
 
     <header class="legal-case-header">
 
-        <div class="legal-case-context">
+        <div class="legal-case-information">
 
             <nav class="breadcrumb" aria-label="Breadcrumb">
                 <a href="{% url 'case_list' %}">
@@ -57,7 +57,7 @@
                 Case Context
             </span>
 
-            <h1 id="legal-heading">
+            <h1 id="legal-heading" class="legal-case-title">
                 {{ case.title|default:"Legal Intelligence Analysis" }}
             </h1>
 
@@ -87,7 +87,7 @@
             {% if case.id %}
                 <a
                     href="{% url 'case_detail' case.id %}"
-                    class="button button-secondary"
+                    class="btn btn-secondary"
                 >
                     Back to Case
                 </a>
@@ -103,19 +103,19 @@
     ========================== -->
 
     <aside
-        class="legal-warning"
+        class="legal-verification-warning"
         role="note"
         aria-labelledby="legal-warning-heading"
     >
         <div
-            class="legal-warning-icon"
+            class="legal-verification-warning-icon"
             aria-hidden="true"
         >
             !
         </div>
 
-        <div class="legal-warning-content">
-            <h2 id="legal-warning-heading">
+        <div class="legal-verification-warning-content">
+            <h2 id="legal-warning-heading" class="legal-verification-warning-title">
                 Officer Verification Required
             </h2>
 
@@ -178,6 +178,15 @@
     {% endif %}
 
 
+    <div
+        class="legal-live-message"
+        data-legal-message
+        role="status"
+        aria-live="polite"
+        hidden
+    ></div>
+
+
     {% if legal_error %}
         <section
             class="legal-error-state"
@@ -198,7 +207,7 @@
 
             <button
                 type="button"
-                class="button button-secondary"
+                class="btn btn-secondary"
                 id="legalRetryButton"
                 data-legal-retry
             >
@@ -213,11 +222,11 @@
     ========================== -->
 
     <section
-        class="legal-narrative-panel"
+        class="legal-narrative-card"
         aria-labelledby="narrative-heading"
     >
 
-        <header class="section-header">
+        <header class="legal-narrative-header">
             <div>
                 <h2 id="narrative-heading">
                     Case Narrative
@@ -255,7 +264,7 @@
                         id="caseNarrative"
                         name="narrative"
                         class="form-textarea legal-narrative-input"
-                        rows="7"
+                        rows="5"
                         data-case-narrative
                         placeholder="Enter or review the relevant case facts..."
                     >{{ case.summary }}</textarea>
@@ -264,7 +273,7 @@
                         id="caseNarrative"
                         name="narrative"
                         class="form-textarea legal-narrative-input"
-                        rows="7"
+                        rows="5"
                         data-case-narrative
                         placeholder="Enter the relevant case facts..."
                     >{{ narrative }}</textarea>
@@ -273,13 +282,13 @@
                         id="caseNarrative"
                         name="narrative"
                         class="form-textarea legal-narrative-input"
-                        rows="7"
+                        rows="5"
                         data-case-narrative
                         placeholder="Enter the relevant case facts..."
                     >{{ request.GET.narrative|default:'' }}</textarea>
                 {% endif %}
 
-                <span class="form-help-text">
+                <span class="legal-narrative-help">
                     Include only facts relevant to the legal analysis.
                     Avoid treating AI output as a substitute for legal review.
                 </span>
@@ -290,9 +299,23 @@
             <!-- Analysis Controls -->
             <div class="legal-analysis-controls">
 
+                <div class="legal-analysis-search">
+                    <label for="legalSearch">Search legal provisions or judgments</label>
+                    <input
+                        type="search"
+                        id="legalSearch"
+                        name="query"
+                        class="form-control"
+                        data-legal-search
+                        placeholder="e.g. cheating, bail, electronic evidence"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="legal-analysis-actions">
                 <button
                     type="submit"
-                    class="button button-primary"
+                    class="btn btn-primary"
                     id="runLegalAnalysis"
                     data-run-analysis
                 >
@@ -302,12 +325,13 @@
 
                 <button
                     type="button"
-                    class="button button-secondary"
+                    class="btn btn-secondary"
                     id="clearLegalNarrative"
                     data-clear-narrative
                 >
                     Clear
                 </button>
+                </div>
 
             </div>
 
@@ -346,7 +370,7 @@
     ========================== -->
 
     <section
-        class="legal-results-section"
+        class="legal-results-card"
         id="legalResults"
         aria-labelledby="legal-results-heading"
     >
@@ -365,7 +389,7 @@
 
             <button
                 type="button"
-                class="button button-secondary"
+                class="btn btn-secondary"
                 id="refreshLegalResults"
                 data-refresh-legal
             >
@@ -449,16 +473,17 @@
             id="bnsPanel"
             role="tabpanel"
             aria-labelledby="bnsTab"
-            data-legal-panel="bns"
+            data-legal-panel="bns" data-legal-tab-panel="bns"
         >
 
             {% if bns_results %}
 
-                <div class="legal-results-list">
+                <div class="legal-results-list" data-legal-results="bns">
                     {% for result in bns_results %}
 
                         <article
                             class="legal-result-card"
+                            data-legal-result
                             data-result-type="bns"
                         >
 
@@ -586,17 +611,18 @@
             id="bnssPanel"
             role="tabpanel"
             aria-labelledby="bnssTab"
-            data-legal-panel="bnss"
+            data-legal-panel="bnss" data-legal-tab-panel="bnss"
             hidden
         >
 
             {% if bnss_results %}
 
-                <div class="legal-results-list">
+                <div class="legal-results-list" data-legal-results="bnss">
                     {% for result in bnss_results %}
 
                         <article
                             class="legal-result-card"
+                            data-legal-result
                             data-result-type="bnss"
                         >
 
@@ -710,17 +736,18 @@
             id="bsaPanel"
             role="tabpanel"
             aria-labelledby="bsaTab"
-            data-legal-panel="bsa"
+            data-legal-panel="bsa" data-legal-tab-panel="bsa"
             hidden
         >
 
             {% if bsa_results %}
 
-                <div class="legal-results-list">
+                <div class="legal-results-list" data-legal-results="bsa">
                     {% for result in bsa_results %}
 
                         <article
                             class="legal-result-card"
+                            data-legal-result
                             data-result-type="bsa"
                         >
 
@@ -834,17 +861,18 @@
             id="judgmentsPanel"
             role="tabpanel"
             aria-labelledby="judgmentsTab"
-            data-legal-panel="judgments"
+            data-legal-panel="judgments" data-legal-tab-panel="judgments"
             hidden
         >
 
             {% if judgments %}
 
-                <div class="legal-results-list">
+                <div class="legal-results-list" data-legal-results="judgments">
                     {% for result in judgments %}
 
                         <article
                             class="legal-result-card judgment-result-card"
+                            data-legal-result
                             data-result-type="judgment"
                         >
 
@@ -981,19 +1009,20 @@
 
     <section
         class="legal-verification-panel"
+        data-legal-verification
         aria-labelledby="verification-heading"
     >
 
-        <div class="legal-verification-content">
+        <div class="legal-verification-panel-header">
 
             <div
-                class="legal-verification-icon"
+                class="legal-verification-panel-icon"
                 aria-hidden="true"
             >
                 ✓
             </div>
 
-            <div>
+            <div class="legal-verification-panel-heading">
                 <h2 id="verification-heading">
                     Officer Verification
                 </h2>
@@ -1007,7 +1036,28 @@
 
         </div>
 
-        <div class="legal-verification-actions">
+        <div class="legal-verification-panel-body">
+            <div class="legal-verification-summary" data-verification-summary aria-live="polite">
+                <div class="legal-verification-stat">
+                    <span class="legal-verification-stat-label">Total references</span>
+                    <strong class="legal-verification-stat-value">0</strong>
+                </div>
+                <div class="legal-verification-stat">
+                    <span class="legal-verification-stat-label">Verified</span>
+                    <strong class="legal-verification-stat-value">0</strong>
+                </div>
+                <div class="legal-verification-stat">
+                    <span class="legal-verification-stat-label">Selected</span>
+                    <strong class="legal-verification-stat-value">0</strong>
+                </div>
+            </div>
+
+            <div class="legal-review-notes">
+                <label for="legalReviewNotes">Review notes</label>
+                <textarea id="legalReviewNotes" data-legal-review-notes rows="3" placeholder="Optional notes for the verification review..."></textarea>
+            </div>
+
+            <div class="legal-verification-actions">
 
             <button
                 type="button"
@@ -1018,6 +1068,7 @@
                 Mark Selected as Verified
             </button>
 
+            </div>
         </div>
 
     </section>
@@ -1078,5 +1129,5 @@
 
 
 {% block extra_js %}
-<script src="{% static 'js/legal.js' %}"></script>
+    <script src="{% static 'js/legal.js' %}"></script>
 {% endblock %}
