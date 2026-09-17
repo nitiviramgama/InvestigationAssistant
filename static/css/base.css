@@ -2431,3 +2431,126 @@ textarea.form-field,
         align-items: flex-start;
     }
 }
+/* ==========================================================================
+   HEADER / NAVIGATION FIX
+   ========================================================================== */
+
+.app-header {
+    min-height: var(--header-height);
+    height: var(--header-height);
+    padding: 12px var(--page-padding);
+}
+
+.header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.header-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(450px, 32vw);
+    flex: 0 1 450px;
+    margin: 0;
+}
+
+.header-search input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    min-height: 40px;
+}
+
+.header-search .btn {
+    flex: 0 0 40px;
+}
+
+/* Keep the sidebar close button hidden on desktop */
+.sidebar-close {
+    display: none;
+}
+
+/* User area */
+.header-user {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.user-menu-button,
+.login-link {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 42px;
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-white);
+}
+
+.user-information {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.user-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Mobile / tablet */
+@media (max-width: 900px) {
+    .app-header {
+        height: auto;
+        min-height: var(--header-height);
+    }
+
+    .header-left {
+        flex: 1 1 auto;
+    }
+
+    .header-right {
+        gap: 8px;
+    }
+
+    .header-search {
+        width: min(300px, 40vw);
+        flex: 0 1 300px;
+    }
+}
+
+@media (max-width: 640px) {
+    .app-header {
+        min-height: 64px;
+        height: 64px;
+        padding: 10px var(--page-padding);
+    }
+
+    .header-search {
+        display: none;
+    }
+
+    .user-information {
+        display: none;
+    }
+
+    .user-menu-button,
+    .login-link {
+        padding: 5px;
+        border: 0;
+    }
+}
