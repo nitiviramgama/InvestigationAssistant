@@ -19,10 +19,10 @@
 
 <section
     class="case-list-page"
+    id="caseListPage"
     data-case-list-page
-    data-current-page="{{ page_obj.number|default:1 }}"
-    data-page-size="{{ page_obj.paginator.per_page|default:20 }}"
-    aria-labelledby="cases-heading"
+    data-cases-endpoint="/api/cases/"
+    data-api-endpoint="/api/cases/"
 >
 
     <!-- ================================================================
