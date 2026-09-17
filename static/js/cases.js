@@ -403,7 +403,9 @@
                 }
 
                 const data =
-                    this.unwrapResponse(response);
+                    response && Object.prototype.hasOwnProperty.call(response, "data")
+                        ? response.data
+                        : response;
 
                 const normalized =
                     this.normalizeResponse(data);
