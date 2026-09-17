@@ -409,7 +409,6 @@
 
                 const normalized =
                     this.normalizeResponse(data);
-
                 this.state.cases =
                     normalized.items;
 
